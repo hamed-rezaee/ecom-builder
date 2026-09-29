@@ -1,0 +1,308 @@
+/* Runtime for exported stores: hash routing, cart, mock checkout. Plain browser JS, no dependencies. */
+(function () {
+  'use strict';
+
+  var data = window.__SITE__ || { name: '', currency: '$', products: [] };
+  var byId = {};
+  data.products.forEach(function (p) {
+    byId[p.id] = p;
+  });
+
+  var KEY = 'eb-cart';
+  var cart = load();
+  var currentRoute = '';
+
+  function load() {
+    try {
+      var parsed = JSON.parse(window.localStorage.getItem(KEY) || '[]');
+      return Array.isArray(parsed)
+        ? parsed.filter(function (l) {
+            return l && byId[l.id] && l.qty > 0;
+          })
+        : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function save() {
+    try {
+      window.localStorage.setItem(KEY, JSON.stringify(cart));
+    } catch {
+      // storage unavailable (sandboxed preview): cart stays in memory
+    }
+  }
+
+  function money(n) {
+    return data.currency + n.toFixed(2);
+  }
+
+  function el(tag, cls, text) {
+    var node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (text != null) node.textContent = text;
+    return node;
+  }
+
+  function count() {
+    return cart.reduce(function (n, l) {
+      return n + l.qty;
+    }, 0);
+  }
+
+  function subtotal() {
+    return cart.reduce(function (n, l) {
+      return n + byId[l.id].price * l.qty;
+    }, 0);
+  }
+
+  function find(id) {
+    for (var i = 0; i < cart.length; i++) if (cart[i].id === id) return cart[i];
+    return null;
+  }
+
+  function setQty(id, qty) {
+    var line = find(id);
+    if (!line) {
+      if (qty > 0 && byId[id]) cart.push({ id: id, qty: qty });
+    } else if (qty <= 0) {
+      cart = cart.filter(function (l) {
+        return l.id !== id;
+      });
+    } else {
+      line.qty = Math.min(qty, 99);
+    }
+    changed();
+  }
+
+  function changed() {
+    save();
+    var badges = document.querySelectorAll('[data-cart-count]');
+    for (var i = 0; i < badges.length; i++)
+      badges[i].textContent = String(count());
+    if (currentRoute === 'cart') renderCart();
+  }
+
+  function emptyMessage(text) {
+    var box = el('div', 'eb-empty');
+    box.appendChild(el('p', null, text));
+    var link = el('a', 'eb-btn', 'Start shopping');
+    link.setAttribute('href', '#/');
+    box.appendChild(link);
+    return box;
+  }
+
+  function renderCart() {
+    var view = document.querySelector('[data-cart-view]');
+    if (!view) return;
+    view.textContent = '';
+    if (!cart.length) {
+      view.appendChild(emptyMessage('Your cart is empty.'));
+      return;
+    }
+    cart.forEach(function (line) {
+      var p = byId[line.id];
+      var row = el('div', 'eb-cart-row');
+      var img = el('img');
+      img.src = p.image;
+      img.alt = p.name;
+      row.appendChild(img);
+
+      var info = el('div', 'eb-cart-info');
+      info.appendChild(el('strong', null, p.name));
+      info.appendChild(el('span', 'eb-note', money(p.price)));
+      var qty = el('div', 'eb-qty');
+      qty.appendChild(actionButton('dec', p.id, '\u2212', 'Decrease quantity'));
+      qty.appendChild(el('span', null, String(line.qty)));
+      qty.appendChild(actionButton('inc', p.id, '+', 'Increase quantity'));
+      info.appendChild(qty);
+      var remove = actionButton('remove', p.id, 'Remove', 'Remove ' + p.name);
+      remove.className = 'eb-link-btn';
+      info.appendChild(remove);
+      row.appendChild(info);
+
+      row.appendChild(el('strong', null, money(p.price * line.qty)));
+      view.appendChild(row);
+    });
+    var summary = el('div', 'eb-summary');
+    summary.appendChild(
+      el('div', 'eb-total', 'Subtotal: ' + money(subtotal())),
+    );
+    var checkout = el('a', 'eb-btn', 'Checkout');
+    checkout.setAttribute('href', '#/checkout');
+    summary.appendChild(checkout);
+    view.appendChild(summary);
+  }
+
+  function actionButton(action, id, label, aria) {
+    var b = el('button', null, label);
+    b.type = 'button';
+    b.setAttribute('data-cart-action', action);
+    b.setAttribute('data-id', id);
+    b.setAttribute('aria-label', aria);
+    return b;
+  }
+
+  function field(label, name, type, autocomplete) {
+    var wrap = el('label', null, label);
+    var input = el('input', 'eb-input');
+    input.name = name;
+    input.type = type || 'text';
+    input.required = true;
+    if (autocomplete) input.autocomplete = autocomplete;
+    wrap.appendChild(input);
+    return wrap;
+  }
+
+  function renderCheckout() {
+    var view = document.querySelector('[data-checkout-view]');
+    if (!view) return;
+    view.textContent = '';
+    if (!cart.length) {
+      view.appendChild(emptyMessage('Your cart is empty.'));
+      return;
+    }
+    var layout = el('div', 'eb-checkout');
+
+    var form = el('form', 'eb-form');
+    form.setAttribute('data-checkout-form', '');
+    form.appendChild(field('Full name', 'name', 'text', 'name'));
+    form.appendChild(field('Email', 'email', 'email', 'email'));
+    form.appendChild(field('Address', 'address', 'text', 'street-address'));
+    var two = el('div', 'eb-form-2');
+    two.appendChild(field('City', 'city', 'text', 'address-level2'));
+    two.appendChild(field('Postal code', 'zip', 'text', 'postal-code'));
+    form.appendChild(two);
+    var submit = el('button', 'eb-btn', 'Place order');
+    submit.type = 'submit';
+    form.appendChild(submit);
+    form.appendChild(
+      el(
+        'p',
+        'eb-note',
+        'Demo checkout: no payment is taken and no data is sent anywhere.',
+      ),
+    );
+    layout.appendChild(form);
+
+    var order = el('div', 'eb-order');
+    order.appendChild(el('strong', null, 'Order summary'));
+    cart.forEach(function (line) {
+      var p = byId[line.id];
+      var row = el('div', 'eb-order-line');
+      row.appendChild(el('span', null, p.name + ' \u00d7 ' + line.qty));
+      row.appendChild(el('span', null, money(p.price * line.qty)));
+      order.appendChild(row);
+    });
+    var total = el('div', 'eb-order-line eb-order-total');
+    total.appendChild(el('span', null, 'Total'));
+    total.appendChild(el('span', null, money(subtotal())));
+    order.appendChild(total);
+    layout.appendChild(order);
+    view.appendChild(layout);
+  }
+
+  function placeOrder(form) {
+    var name = form.elements.namedItem('name').value.trim();
+    var number = 'ORD-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+    cart = [];
+    changed();
+    var view = document.querySelector('[data-checkout-view]');
+    view.textContent = '';
+    var box = el('div', 'eb-success');
+    box.appendChild(el('h2', 'eb-heading', 'Thank you, ' + name + '!'));
+    box.appendChild(
+      el(
+        'p',
+        'eb-sub',
+        'Order ' +
+          number +
+          ' was placed. This is a demo store, so nothing was charged.',
+      ),
+    );
+    var back = el('a', 'eb-btn', 'Continue shopping');
+    back.setAttribute('href', '#/');
+    box.appendChild(back);
+    view.appendChild(box);
+  }
+
+  function route() {
+    var path = decodeURIComponent(window.location.hash.replace(/^#\/?/, ''));
+    var sections = document.querySelectorAll('[data-route]');
+    var match = null;
+    var notFound = null;
+    for (var i = 0; i < sections.length; i++) {
+      var r = sections[i].getAttribute('data-route');
+      if (r === path) match = sections[i];
+      if (r === '404') notFound = sections[i];
+    }
+    match = match || notFound;
+    currentRoute = match ? match.getAttribute('data-route') : '';
+    for (var j = 0; j < sections.length; j++)
+      sections[j].hidden = sections[j] !== match;
+    var title = match && match.getAttribute('data-title');
+    document.title = title ? title + ' \u2013 ' + data.name : data.name;
+    if (currentRoute === 'cart') renderCart();
+    if (currentRoute === 'checkout') renderCheckout();
+    window.scrollTo(0, 0);
+  }
+
+  function go(href) {
+    if (href === '#') return;
+    if (window.location.hash === href) route();
+    else window.location.hash = href;
+  }
+
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    if (!(t instanceof Element)) return;
+
+    var anchor = t.closest('a[href^="#"]');
+    if (anchor) {
+      e.preventDefault();
+      go(anchor.getAttribute('href'));
+      return;
+    }
+
+    var add = t.closest('[data-add-to-cart]');
+    if (add) {
+      var id = add.getAttribute('data-add-to-cart');
+      var line = find(id);
+      setQty(id, (line ? line.qty : 0) + 1);
+      var original = add.getAttribute('data-label') || add.textContent;
+      add.setAttribute('data-label', original);
+      add.textContent = 'Added \u2713';
+      clearTimeout(add._reset);
+      add._reset = setTimeout(function () {
+        add.textContent = original;
+      }, 1200);
+      return;
+    }
+
+    var action = t.closest('[data-cart-action]');
+    if (action) {
+      var pid = action.getAttribute('data-id');
+      var current = find(pid);
+      var qty = current ? current.qty : 0;
+      var type = action.getAttribute('data-cart-action');
+      setQty(pid, type === 'inc' ? qty + 1 : type === 'dec' ? qty - 1 : 0);
+    }
+  });
+
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    if (form.hasAttribute('data-newsletter')) {
+      e.preventDefault();
+      var thanks = el('p', 'eb-sub', 'Thanks for subscribing!');
+      form.replaceWith(thanks);
+    } else if (form.hasAttribute('data-checkout-form')) {
+      e.preventDefault();
+      placeOrder(form);
+    }
+  });
+
+  window.addEventListener('hashchange', route);
+  changed();
+  route();
+})();
