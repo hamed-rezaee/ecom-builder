@@ -22,7 +22,7 @@ import {
   Testimonials,
 } from './content';
 import { FeaturedProduct, ProductGrid } from './commerce';
-import { WIRE_SHAPES } from '../utils/wireShapes';
+import { GRID_STYLES, WIRE_SHAPES, WIRE_STYLES } from '../utils/wireShapes';
 
 const text = (key, label) => ({ key, label, type: 'text' });
 const area = (key, label) => ({ key, label, type: 'textarea' });
@@ -51,9 +51,13 @@ export const registry = {
       height: 'md',
       wire: false,
       wireShape: 'terrain',
+      wireStyle: 'both',
       wireColor: '#ffffff',
       wireSpeed: 50,
+      wirePulse: true,
       wireInteractive: true,
+      gridStyle: 'none',
+      gridColor: '#ffffff',
     },
     fields: [
       text('heading', 'Heading'),
@@ -72,6 +76,7 @@ export const registry = {
       ]),
       { key: 'wire', label: 'Wireframe animation', type: 'toggle' },
       select('wireShape', 'Wireframe shape', WIRE_SHAPES),
+      select('wireStyle', 'Wireframe style', WIRE_STYLES),
       { key: 'wireColor', label: 'Wireframe color', type: 'color' },
       {
         key: 'wireSpeed',
@@ -80,11 +85,14 @@ export const registry = {
         min: 0,
         max: 100,
       },
+      { key: 'wirePulse', label: 'Traveling light pulses', type: 'toggle' },
       {
         key: 'wireInteractive',
         label: 'React to pointer (Preview and export)',
         type: 'toggle',
       },
+      select('gridStyle', 'Background grid animation', GRID_STYLES),
+      { key: 'gridColor', label: 'Grid color', type: 'color' },
     ],
   },
   productGrid: {

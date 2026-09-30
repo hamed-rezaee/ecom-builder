@@ -3,35 +3,75 @@ import {
   BufferAttribute,
   BufferGeometry,
   Color,
+  DataTexture,
   Group,
   IcosahedronGeometry,
   LineBasicMaterial,
   LineSegments,
+  LinearFilter,
   PerspectiveCamera,
+  Points,
+  PointsMaterial,
   Raycaster,
   Scene,
   Vector3,
   WebGLRenderer,
   WireframeGeometry,
 } from 'three';
-import { WIRE_SHAPES } from './wireShapes';
-
-const HEX = /^#[0-9a-f]{6}$/i;
+import { WIRE_SHAPES, WIRE_STYLES, oneOf, safeHex } from './wireShapes';
 
 // Untrusted input (data-wire attribute, old sites): always returns a safe option set.
 export function parseWireOptions(raw) {
   const o = raw && typeof raw === 'object' ? raw : {};
   const speed = Number(o.speed);
   return {
-    shape: WIRE_SHAPES.some(([v]) => v === o.shape) ? o.shape : 'terrain',
-    color:
-      typeof o.color === 'string' && HEX.test(o.color) ? o.color : '#ffffff',
+    shape: oneOf(WIRE_SHAPES, o.shape, 'terrain'),
+    style: oneOf(WIRE_STYLES, o.style, 'lines'),
+    color: safeHex(o.color),
     speed: Number.isFinite(speed) ? Math.min(100, Math.max(0, speed)) : 50,
+    pulse: o.pulse !== false,
     interactive: o.interactive !== false,
   };
 }
 
-function terrainShape() {
+const TAU = Math.PI * 2;
+
+// Deterministic noise in [0, 1) so shapes look the same on every load.
+const rnd = (n) => {
+  const s = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+  return s - Math.floor(s);
+};
+
+// Soft round sprite for dots; a DataTexture avoids needing a 2D canvas context.
+function dotTexture() {
+  const s = 32;
+  const data = new Uint8Array(s * s * 4);
+  for (let y = 0; y < s; y++) {
+    for (let x = 0; x < s; x++) {
+      const d = Math.hypot(((x + 0.5) / s) * 2 - 1, ((y + 0.5) / s) * 2 - 1);
+      const a = Math.max(0, 1 - d);
+      const i = (y * s + x) * 4;
+      data.fill(255, i, i + 3);
+      data[i + 3] = Math.round(a * a * (3 - 2 * a) * 255);
+    }
+  }
+  const tex = new DataTexture(data, s, s);
+  tex.magFilter = LinearFilter;
+  tex.minFilter = LinearFilter;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+const terrainWave = (x, y, z, t) =>
+  0.45 * Math.sin(x * 0.7 + t * 1.2) * Math.cos(z * 0.6 + t * 0.9) +
+  0.25 * Math.sin((x + z) * 0.5 - t * 0.7);
+
+const rippleWave = (x, y, z, t) => {
+  const r = Math.hypot(x, z);
+  return 0.7 * Math.sin(r * 1.3 - t * 2.4) * Math.exp(-r * 0.14);
+};
+
+function planeShape(wave) {
   const n = 36;
   const size = 16;
   const positions = new Float32Array((n + 1) * (n + 1) * 3);
@@ -58,8 +98,14 @@ function terrainShape() {
     index: new Uint16Array(index),
     camera: [0, 4.2, 9],
     tiltX: 0,
+    sway: true,
+    dot: 0.14,
+    wave,
   };
 }
+
+const terrainShape = () => planeShape(terrainWave);
+const rippleShape = () => planeShape(rippleWave);
 
 function radialNormals(positions) {
   const normals = new Float32Array(positions.length);
@@ -77,15 +123,32 @@ function radialNormals(positions) {
 function sphereShape() {
   const ico = new IcosahedronGeometry(3.2, 3);
   const wire = new WireframeGeometry(ico);
-  const positions = Float32Array.from(wire.attributes.position.array);
+  const raw = wire.attributes.position.array;
   ico.dispose();
   wire.dispose();
+  // Merge duplicate vertices so dots do not stack and brighten.
+  const seen = new Map();
+  const unique = [];
+  const index = [];
+  for (let k = 0; k < raw.length; k += 3) {
+    const key = `${raw[k].toFixed(3)},${raw[k + 1].toFixed(3)},${raw[k + 2].toFixed(3)}`;
+    let id = seen.get(key);
+    if (id === undefined) {
+      id = unique.length / 3;
+      seen.set(key, id);
+      unique.push(raw[k], raw[k + 1], raw[k + 2]);
+    }
+    index.push(id);
+  }
+  const positions = Float32Array.from(unique);
   return {
     positions,
     normals: radialNormals(positions),
-    index: null,
+    index: new Uint16Array(index),
     camera: [0, 0, 9],
     tiltX: 0.3,
+    dot: 0.09,
+    wave: (x, y, z, t) => 0.18 * Math.sin(y * 2.2 - t * 1.8),
   };
 }
 
@@ -121,13 +184,166 @@ function latticeShape() {
     index: new Uint16Array(index),
     camera: [0, 0, 11],
     tiltX: 0.35,
+    dot: 0.12,
+    wave: (x, y, z, t) => 0.15 * Math.sin((x + y + z) * 0.8 - t * 1.6),
+  };
+}
+
+function torusShape() {
+  const n = 48;
+  const m = 16;
+  const R = 3;
+  const r = 1.2;
+  const positions = new Float32Array(n * m * 3);
+  const normals = new Float32Array(n * m * 3);
+  const index = [];
+  for (let i = 0; i < n; i++) {
+    const th = (i / n) * TAU;
+    for (let j = 0; j < m; j++) {
+      const ph = (j / m) * TAU;
+      const a = i * m + j;
+      const k = a * 3;
+      positions[k] = (R + r * Math.cos(ph)) * Math.cos(th);
+      positions[k + 1] = r * Math.sin(ph);
+      positions[k + 2] = (R + r * Math.cos(ph)) * Math.sin(th);
+      normals[k] = Math.cos(ph) * Math.cos(th);
+      normals[k + 1] = Math.sin(ph);
+      normals[k + 2] = Math.cos(ph) * Math.sin(th);
+      index.push(a, ((i + 1) % n) * m + j, a, i * m + ((j + 1) % m));
+    }
+  }
+  return {
+    positions,
+    normals,
+    index: new Uint16Array(index),
+    camera: [0, 0, 10],
+    tiltX: 0.9,
+    dot: 0.1,
+    wave: (x, y, z, t) => 0.2 * Math.sin(Math.atan2(z, x) * 5 + t * 2),
+  };
+}
+
+function helixShape() {
+  const steps = 90;
+  const turns = 3;
+  const radius = 1.8;
+  const height = 8;
+  const positions = new Float32Array((steps + 1) * 2 * 3);
+  const normals = new Float32Array(positions.length);
+  const index = [];
+  const B = steps + 1;
+  for (let i = 0; i <= steps; i++) {
+    const y = (i / steps - 0.5) * height;
+    for (let s = 0; s < 2; s++) {
+      const ang = (i / steps) * turns * TAU + s * Math.PI;
+      const k = (s * B + i) * 3;
+      positions[k] = Math.cos(ang) * radius;
+      positions[k + 1] = y;
+      positions[k + 2] = Math.sin(ang) * radius;
+      normals[k] = Math.cos(ang);
+      normals[k + 2] = Math.sin(ang);
+    }
+    if (i < steps) index.push(i, i + 1, B + i, B + i + 1);
+    if (i % 3 === 0) index.push(i, B + i);
+  }
+  return {
+    positions,
+    normals,
+    index: new Uint16Array(index),
+    camera: [0, 0, 11],
+    tiltX: 0.15,
+    spinY: 0.4,
+    dot: 0.11,
+    wave: (x, y, z, t) => 0.15 * Math.sin(y * 2 - t * 2),
+  };
+}
+
+function tunnelShape() {
+  const rings = 22;
+  const seg = 20;
+  const radius = 4;
+  const positions = new Float32Array(rings * seg * 3);
+  const normals = new Float32Array(positions.length);
+  const index = [];
+  for (let i = 0; i < rings; i++) {
+    const z = (0.5 - i / (rings - 1)) * 22;
+    for (let j = 0; j < seg; j++) {
+      const a = i * seg + j;
+      const k = a * 3;
+      const ang = (j / seg) * TAU;
+      positions[k] = Math.cos(ang) * radius;
+      positions[k + 1] = Math.sin(ang) * radius;
+      positions[k + 2] = z;
+      normals[k] = Math.cos(ang);
+      normals[k + 1] = Math.sin(ang);
+      index.push(a, i * seg + ((j + 1) % seg));
+      if (i < rings - 1) index.push(a, a + seg);
+    }
+  }
+  return {
+    positions,
+    normals,
+    index: new Uint16Array(index),
+    camera: [0, 0, 13],
+    tiltX: 0,
+    spinY: 0,
+    spinZ: 0.3,
+    dot: 0.13,
+    wave: (x, y, z, t) => 0.35 * Math.sin(z * 0.9 - t * 2.5),
+  };
+}
+
+function galaxyShape() {
+  const arms = 3;
+  const per = 120;
+  const dust = 260;
+  const total = arms * per + dust;
+  const positions = new Float32Array(total * 3);
+  const normals = new Float32Array(total * 3);
+  const index = [];
+  for (let arm = 0; arm < arms; arm++) {
+    for (let j = 0; j < per; j++) {
+      const t = j / (per - 1);
+      const a = arm * per + j;
+      const ang = (arm / arms) * TAU + t * 3.2 + (rnd(a) - 0.5) * 0.12;
+      const r = 0.4 + t * 5.5;
+      positions[a * 3] = Math.cos(ang) * r;
+      positions[a * 3 + 1] = (rnd(a + 500) - 0.5) * 0.5 * t;
+      positions[a * 3 + 2] = Math.sin(ang) * r;
+      if (j < per - 1) index.push(a, a + 1);
+    }
+  }
+  // Dust is not indexed, so only the dots styles draw it.
+  for (let d = 0; d < dust; d++) {
+    const a = arms * per + d;
+    const ang = rnd(a) * TAU;
+    const r = 0.5 + rnd(a + 900) * 6;
+    positions[a * 3] = Math.cos(ang) * r;
+    positions[a * 3 + 1] = (rnd(a + 1300) - 0.5) * 1.6;
+    positions[a * 3 + 2] = Math.sin(ang) * r;
+  }
+  for (let v = 0; v < total; v++) normals[v * 3 + 1] = 1;
+  return {
+    positions,
+    normals,
+    index: new Uint16Array(index),
+    camera: [0, 3.5, 9.5],
+    tiltX: 0.25,
+    spinY: 0.2,
+    dot: 0.12,
+    wave: (x, y, z, t) => 0.35 * Math.sin(Math.hypot(x, z) * 1.4 - t * 2),
   };
 }
 
 const BUILDERS = {
   terrain: terrainShape,
+  ripple: rippleShape,
   sphere: sphereShape,
   lattice: latticeShape,
+  torus: torusShape,
+  helix: helixShape,
+  tunnel: tunnelShape,
+  galaxy: galaxyShape,
 };
 
 // Mounts an animated wireframe canvas in `el`. Returns a dispose function; no-op without WebGL.
@@ -151,7 +367,8 @@ export function mountWireframe(el, rawOptions) {
 
   const shape = BUILDERS[opts.shape]();
   const count = shape.positions.length / 3;
-  const isTerrain = opts.shape === 'terrain';
+  const wantLines = opts.style !== 'dots';
+  const wantDots = opts.style !== 'lines';
 
   // Edges fade toward the rim so the structure melts into the hero background.
   let maxR = 0;
@@ -177,11 +394,28 @@ export function mountWireframe(el, rawOptions) {
 
   const positions = new Float32Array(shape.positions);
   const colors = new Float32Array(count * 3);
+  const dotColors = new Float32Array(count * 3);
+  const positionAttr = new BufferAttribute(positions, 3);
+  const colorAttr = new BufferAttribute(colors, 3);
+  const dotColorAttr = new BufferAttribute(dotColors, 3);
   const geometry = new BufferGeometry();
-  geometry.setAttribute('position', new BufferAttribute(positions, 3));
-  geometry.setAttribute('color', new BufferAttribute(colors, 3));
-  if (shape.index) geometry.setIndex(new BufferAttribute(shape.index, 1));
+  geometry.setAttribute('position', positionAttr);
+  geometry.setAttribute('color', colorAttr);
+  geometry.setIndex(new BufferAttribute(shape.index, 1));
   const material = new LineBasicMaterial({
+    vertexColors: true,
+    transparent: true,
+    blending: AdditiveBlending,
+    depthWrite: false,
+  });
+  // Dots use their own unindexed geometry over the same positions, so every vertex draws once.
+  const dotGeometry = new BufferGeometry();
+  dotGeometry.setAttribute('position', positionAttr);
+  dotGeometry.setAttribute('color', dotColorAttr);
+  const sprite = dotTexture();
+  const dotMaterial = new PointsMaterial({
+    size: shape.dot,
+    map: sprite,
     vertexColors: true,
     transparent: true,
     blending: AdditiveBlending,
@@ -191,7 +425,16 @@ export function mountWireframe(el, rawOptions) {
 
   const scene = new Scene();
   const group = new Group();
-  group.add(new LineSegments(geometry, material));
+  if (wantLines) {
+    const lines = new LineSegments(geometry, material);
+    lines.frustumCulled = false;
+    group.add(lines);
+  }
+  if (wantDots) {
+    const dots = new Points(dotGeometry, dotMaterial);
+    dots.frustumCulled = false;
+    group.add(dots);
+  }
   scene.add(group);
   const camera = new PerspectiveCamera(50, 1, 0.1, 100);
   const raycaster = new Raycaster();
@@ -231,8 +474,11 @@ export function mountWireframe(el, rawOptions) {
     hover += ((pointer.inside && opts.interactive ? 1 : 0) - hover) * ease;
 
     group.rotation.x = shape.tiltX + drag.x + tilt.x;
-    group.rotation.y =
-      (isTerrain ? Math.sin(time * 0.3) * 0.3 : time * 0.25) + drag.y + tilt.y;
+    const spin = shape.sway
+      ? Math.sin(time * 0.3) * 0.3
+      : time * (shape.spinY ?? 0.25);
+    group.rotation.y = spin + drag.y + tilt.y;
+    group.rotation.z = time * (shape.spinZ ?? 0);
     group.updateMatrixWorld(true);
 
     let inverse = null;
@@ -246,33 +492,41 @@ export function mountWireframe(el, rawOptions) {
     const nrm = shape.normals;
     for (let v = 0; v < count; v++) {
       const k = v * 3;
-      let wave = 0;
-      if (isTerrain) {
-        const x = src[k];
-        const z = src[k + 2];
-        wave =
-          0.45 *
-            Math.sin(x * 0.7 + time * 1.2) *
-            Math.cos(z * 0.6 + time * 0.9) +
-          0.25 * Math.sin((x + z) * 0.5 - time * 0.7);
-      }
+      const x = src[k];
+      const y = src[k + 1];
+      const z = src[k + 2];
+      const wave = shape.wave(x, y, z, time);
       let glow = 0;
       if (inverse) {
-        point.set(src[k], src[k + 1] + wave, src[k + 2]);
+        point.set(
+          x + nrm[k] * wave,
+          y + nrm[k + 1] * wave,
+          z + nrm[k + 2] * wave,
+        );
         glow = Math.exp(-localRay.distanceSqToPoint(point) / 2.5) * hover;
       }
       const lift = wave + glow * 0.6;
-      positions[k] = src[k] + nrm[k] * lift;
-      positions[k + 1] = src[k + 1] + nrm[k + 1] * lift;
-      positions[k + 2] = src[k + 2] + nrm[k + 2] * lift;
-      const level =
-        fade[v] * (0.4 + 0.6 * glow + (isTerrain ? 0.25 * wave : 0));
+      positions[k] = x + nrm[k] * lift;
+      positions[k + 1] = y + nrm[k + 1] * lift;
+      positions[k + 2] = z + nrm[k + 2] * lift;
+      // Expanding bright rings travel outward from the center.
+      const ring = opts.pulse
+        ? Math.max(0, Math.sin(Math.hypot(x, y, z) * 1.1 - time * 2.4)) ** 8
+        : 0;
+      const level = fade[v] * (0.4 + 0.6 * glow + 0.25 * wave + 0.7 * ring);
       colors[k] = base.r * level;
       colors[k + 1] = base.g * level;
       colors[k + 2] = base.b * level;
+      // Each dot twinkles on its own phase.
+      const twinkle = 0.65 + 0.35 * Math.sin(time * 3 + v * 12.9898);
+      const dotLevel = Math.min(1.6, level * 1.4 * twinkle);
+      dotColors[k] = base.r * dotLevel;
+      dotColors[k + 1] = base.g * dotLevel;
+      dotColors[k + 2] = base.b * dotLevel;
     }
-    geometry.attributes.position.needsUpdate = true;
-    geometry.attributes.color.needsUpdate = true;
+    positionAttr.needsUpdate = true;
+    colorAttr.needsUpdate = true;
+    dotColorAttr.needsUpdate = true;
     renderer.render(scene, camera);
   }
 
@@ -369,7 +623,10 @@ export function mountWireframe(el, rawOptions) {
     listeners.forEach(([type, fn]) => host.removeEventListener(type, fn));
     host.classList.remove('eb-wire-host');
     geometry.dispose();
+    dotGeometry.dispose();
     material.dispose();
+    dotMaterial.dispose();
+    sprite.dispose();
     renderer.dispose();
     canvas.remove();
   };

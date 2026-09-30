@@ -101,6 +101,9 @@ export function createStarterSite() {
             buttonText: 'Shop the collection',
             buttonHref: '#/p/shop',
             height: 'lg',
+            wire: true,
+            wireShape: 'ripple',
+            gridStyle: 'dots',
           }),
           createBlock('features'),
           createBlock('productGrid', {

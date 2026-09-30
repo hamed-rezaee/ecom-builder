@@ -72,6 +72,62 @@
 .eb-hero-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .eb-hero-overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); }
 .eb-hero-wire { position: absolute; inset: 0; pointer-events: none; }
+
+/* Animated background grids; --eb-grid-c is set inline from a validated hex color. */
+.eb-hero-grid { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.eb-hero-grid-scroll, .eb-hero-grid-pulse, .eb-hero-grid-floor::before {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--eb-grid-c) 24%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--eb-grid-c) 24%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+.eb-hero-grid-scroll {
+  animation: eb-grid-scroll 6s linear infinite;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 25%, transparent 85%);
+  mask-image: radial-gradient(ellipse at center, #000 25%, transparent 85%);
+}
+.eb-hero-grid-floor {
+  perspective: 380px;
+  -webkit-mask-image: linear-gradient(to top, #000 15%, transparent 80%);
+  mask-image: linear-gradient(to top, #000 15%, transparent 80%);
+}
+.eb-hero-grid-floor::before {
+  content: ''; position: absolute; left: -60%; right: -60%; bottom: -10%; height: 100%;
+  transform-origin: 50% 100%; transform: rotateX(62deg);
+  animation: eb-grid-floor 2.4s linear infinite;
+}
+.eb-hero-grid-pulse { animation: eb-grid-breathe 4s ease-in-out infinite; }
+.eb-hero-grid-pulse::after {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 30%;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--eb-grid-c) 26%, transparent), transparent);
+  animation: eb-grid-scan 5s linear infinite;
+}
+.eb-hero-grid-dots, .eb-hero-grid-dots::before, .eb-hero-grid-dots::after {
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--eb-grid-c) 90%, transparent) 1.5px, transparent 2.2px);
+  background-size: 28px 28px;
+}
+.eb-hero-grid-dots { background-image: radial-gradient(circle, color-mix(in srgb, var(--eb-grid-c) 30%, transparent) 1.5px, transparent 2.2px); }
+.eb-hero-grid-dots::after {
+  content: ''; position: absolute; inset: 0; background-position: 14px 14px; opacity: 0.2;
+  animation: eb-grid-twinkle 2.4s ease-in-out infinite alternate;
+}
+.eb-hero-grid-dots::before {
+  content: ''; position: absolute; inset: 0;
+  -webkit-mask-image: linear-gradient(100deg, transparent 20%, #000 50%, transparent 80%);
+  mask-image: linear-gradient(100deg, transparent 20%, #000 50%, transparent 80%);
+  -webkit-mask-size: 250% 100%; mask-size: 250% 100%;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  animation: eb-grid-sweep 5s ease-in-out infinite;
+}
+@keyframes eb-grid-scroll { to { background-position: 48px 48px; } }
+@keyframes eb-grid-floor { to { background-position: 0 48px; } }
+@keyframes eb-grid-breathe { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+@keyframes eb-grid-scan { from { transform: translateY(-100%); } to { transform: translateY(340%); } }
+@keyframes eb-grid-twinkle { from { opacity: 0.1; } to { opacity: 0.8; } }
+@keyframes eb-grid-sweep {
+  from { -webkit-mask-position: 100% 0; mask-position: 100% 0; }
+  to { -webkit-mask-position: 0 0; mask-position: 0 0; }
+}
 .eb-wire-host { touch-action: pan-y; cursor: grab; }
 .eb-wire-host:active { cursor: grabbing; }
 .eb-wire-host :is(a, button, input) { cursor: pointer; }
@@ -214,6 +270,7 @@
 .eb-pt-slide { animation: eb-pt-slide 0.4s ease both; }
 @media (prefers-reduced-motion: reduce) {
   .eb-pt-fade, .eb-pt-slide { animation: none; }
+  .eb-hero-grid, .eb-hero-grid::before, .eb-hero-grid::after { animation: none; }
   .eb-hover-lift :is(.eb-card, .eb-quote, .eb-feature, .eb-btn, .eb-split img):hover,
   .eb-hover-scale :is(.eb-card, .eb-quote, .eb-feature, .eb-btn, .eb-split img):hover { transform: none; }
 }

@@ -1,11 +1,14 @@
 import { useEffect, useRef } from 'react'
 import { placeholderImage, safeHref, safeSrc } from '../utils/helpers'
+import { GRID_STYLES, oneOf, safeHex } from '../utils/wireShapes'
 
 export function Hero({ props: p }) {
   const img = safeSrc(p.image)
   const wireRef = useRef(null)
   const wire = p.wire === true
-  const { wireShape, wireColor, wireSpeed } = p
+  const { wireShape, wireStyle, wireColor, wireSpeed } = p
+  const wirePulse = p.wirePulse !== false
+  const gridStyle = oneOf(GRID_STYLES, p.gridStyle, 'none')
 
   // Client-only: exported sites mount the wireframe from the runtime instead.
   useEffect(() => {
@@ -15,14 +18,21 @@ export function Hero({ props: p }) {
     let cancelled = false
     import('../utils/wireframe').then(({ mountWireframe }) => {
       if (!cancelled) {
-        dispose = mountWireframe(el, { shape: wireShape, color: wireColor, speed: wireSpeed, interactive: false })
+        dispose = mountWireframe(el, {
+          shape: wireShape,
+          style: wireStyle,
+          color: wireColor,
+          speed: wireSpeed,
+          pulse: wirePulse,
+          interactive: false,
+        })
       }
     })
     return () => {
       cancelled = true
       dispose?.()
     }
-  }, [wire, wireShape, wireColor, wireSpeed])
+  }, [wire, wireShape, wireStyle, wireColor, wireSpeed, wirePulse])
 
   return (
     <section
@@ -34,14 +44,23 @@ export function Hero({ props: p }) {
           <div className="eb-hero-overlay" />
         </>
       )}
+      {gridStyle !== 'none' && (
+        <div
+          className={`eb-hero-grid eb-hero-grid-${gridStyle}`}
+          style={{ '--eb-grid-c': safeHex(p.gridColor) }}
+          aria-hidden="true"
+        />
+      )}
       {wire && (
         <div
           ref={wireRef}
           className="eb-hero-wire"
           data-wire={JSON.stringify({
             shape: p.wireShape,
+            style: p.wireStyle,
             color: p.wireColor,
             speed: p.wireSpeed,
+            pulse: wirePulse,
             interactive: p.wireInteractive !== false,
           })}
         />
