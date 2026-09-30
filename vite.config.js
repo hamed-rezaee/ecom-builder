@@ -18,6 +18,8 @@ function iifeRaw() {
           format: 'iife',
           minify: true,
         });
+        // Without this, edits to bundled sources leave Vite serving a stale bundle.
+        for (const f of await bundle.watchFiles) this.addWatchFile(f);
         return `export default ${JSON.stringify(output[0].code)};`;
       } finally {
         await bundle.close();
