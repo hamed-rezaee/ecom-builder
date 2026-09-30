@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { motion } from 'framer-motion'
 import { ExternalLink, Monitor, Smartphone, Tablet, X } from 'lucide-react'
 import { buildSite } from '../export/buildSite'
 import { useSiteStore } from '../store/useSiteStore'
@@ -29,10 +30,14 @@ export default function PreviewModal({ onClose }) {
   }
 
   return (
-    <div
+    <motion.div
       role="dialog"
       aria-modal="true"
       aria-label="Site preview"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
       className="fixed inset-0 z-50 flex flex-col bg-slate-900/80"
     >
       <div className="flex h-14 shrink-0 items-center gap-3 bg-slate-900 px-4 text-white">
@@ -68,7 +73,12 @@ export default function PreviewModal({ onClose }) {
           <X size={18} />
         </button>
       </div>
-      <div className="flex min-h-0 flex-1 justify-center overflow-auto p-4">
+      <motion.div
+        initial={{ y: 16, scale: 0.98 }}
+        animate={{ y: 0, scale: 1 }}
+        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+        className="flex min-h-0 flex-1 justify-center overflow-auto p-4"
+      >
         <iframe
           title="Site preview"
           srcDoc={html}
@@ -76,7 +86,7 @@ export default function PreviewModal({ onClose }) {
           className="h-full rounded-lg bg-white shadow-2xl transition-[width] duration-300"
           style={{ width: width ?? '100%' }}
         />
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }

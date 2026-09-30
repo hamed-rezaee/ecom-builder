@@ -1,98 +1,137 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
+  KeyboardSensor,
   PointerSensor,
   TouchSensor,
-  closestCenter,
-  pointerWithin,
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import { GripVertical } from 'lucide-react'
 import { registry } from '../blocks/registry'
 import { selectPage, useSiteStore } from '../store/useSiteStore'
+import { collision, pointerY, resolveDropIndex, resolveMove } from '../utils/dnd'
 import Canvas from './Canvas'
 import Inspector from './Inspector'
 import LeftSidebar from './LeftSidebar'
 
-const collision = (args) => {
-  const within = pointerWithin(args)
-  return within.length ? within : closestCenter(args)
+const currentBlocks = () => selectPage(useSiteStore.getState()).blocks
+
+const labelOf = (active) => {
+  const data = active.data.current
+  if (data?.kind === 'palette') return registry[data.blockType].label
+  const block = currentBlocks().find((b) => b.id === active.id)
+  return block ? registry[block.type].label : 'Block'
 }
 
-function currentBlocks() {
-  const state = useSiteStore.getState()
-  return selectPage(state).blocks
-}
-
-// Insertion index in the current page for a drag event, or null when not over the canvas.
-function insertionIndex({ active, over }) {
+const overLabel = (over) => {
   if (!over) return null
-  const blocks = currentBlocks()
-  if (over.id === 'header') return 0
-  if (over.id === 'footer' || over.id === 'canvas-end') return blocks.length
-  const i = blocks.findIndex((b) => b.id === over.id)
-  if (i < 0) return null
-  const rect = active.rect.current.translated
-  if (!rect) return i
-  const center = rect.top + rect.height / 2
-  return center > over.rect.top + over.rect.height / 2 ? i + 1 : i
+  if (over.id === 'header') return 'the header'
+  if (over.id === 'footer') return 'the footer'
+  if (over.id === 'canvas-end') return 'the end of the page'
+  const i = currentBlocks().findIndex((b) => b.id === over.id)
+  return i < 0 ? null : `position ${i + 1} of ${currentBlocks().length}`
 }
+
+const announcements = {
+  onDragStart: ({ active }) => `Picked up ${labelOf(active)}.`,
+  onDragOver: ({ active, over }) => {
+    const where = overLabel(over)
+    return where ? `${labelOf(active)} is over ${where}.` : `${labelOf(active)} is not over a drop area.`
+  },
+  onDragEnd: ({ active, over }) => {
+    const where = overLabel(over)
+    return where ? `Dropped ${labelOf(active)} at ${where}.` : `Dropped ${labelOf(active)} outside the page.`
+  },
+  onDragCancel: ({ active }) => `Cancelled moving ${labelOf(active)}.`,
+}
+
+const screenReaderInstructions = {
+  draggable:
+    'Press space or enter to pick up a block. Use the arrow keys to move it, space or enter to drop, escape to cancel.',
+}
+
+const DROP_ANIMATION = { duration: 260, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
 
 export default function Workspace() {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
   const [active, setActive] = useState(null)
   const [dropIndex, setDropIndex] = useState(null)
+  // Kept after the drop so the overlay knows which drop animation to use.
+  const [lastKind, setLastKind] = useState(null)
+  const [layoutLocked, setLayoutLocked] = useState(false)
+  const unlockFrame = useRef(0)
 
-  const activeLabel = active
-    ? registry[active.kind === 'palette' ? active.blockType : active.type].label
-    : null
+  useEffect(() => () => cancelAnimationFrame(unlockFrame.current), [])
 
-  // Hide the indicator when a dragged block would land where it already is.
-  const displayIndex = (event) => {
-    const index = insertionIndex(event)
-    if (index == null || event.active.data.current?.kind !== 'block') return index
-    const from = currentBlocks().findIndex((b) => b.id === event.active.id)
-    return index === from || index === from + 1 ? null : index
+  // dnd-kit animates the drop itself; let framer layout resume once it settles.
+  const finish = () => {
+    setActive(null)
+    setDropIndex(null)
+    cancelAnimationFrame(unlockFrame.current)
+    unlockFrame.current = requestAnimationFrame(() =>
+      requestAnimationFrame(() => setLayoutLocked(false)),
+    )
   }
 
   const handleStart = ({ active: a }) => {
+    cancelAnimationFrame(unlockFrame.current)
+    setLayoutLocked(true)
     const data = a.data.current
-    if (data?.kind === 'palette') return setActive({ kind: 'palette', blockType: data.blockType })
+    if (data?.kind === 'palette') {
+      setLastKind('palette')
+      return setActive({ kind: 'palette', blockType: data.blockType })
+    }
     const block = currentBlocks().find((b) => b.id === a.id)
+    setLastKind('block')
     setActive(block ? { kind: 'block', id: block.id, type: block.type } : null)
-    useSiteStore.getState().select(a.id)
+    if (!useSiteStore.getState().selectedIds.includes(a.id)) useSiteStore.getState().select(a.id)
   }
 
-  const handleMove = (event) => setDropIndex(displayIndex(event))
+  // Only palette drags show an insertion marker; block drags reorder live via the sortable list.
+  const handleMove = (event) => {
+    if (event.active.data.current?.kind !== 'palette') return
+    const blockIds = currentBlocks().map((b) => b.id)
+    const y = pointerY(event) ?? event.active.rect.current.translated?.top
+    setDropIndex(
+      resolveDropIndex({ overId: event.over?.id, blockIds, overRect: event.over?.rect, y }),
+    )
+  }
 
   const handleEnd = (event) => {
-    const index = displayIndex(event)
     const current = active
-    setActive(null)
-    setDropIndex(null)
-    if (index == null || !current) return
+    const index = dropIndex
+    finish()
+    if (!current) return
     const { addBlock, moveBlock } = useSiteStore.getState()
     if (current.kind === 'palette') {
-      addBlock(current.blockType, index)
+      if (index != null) addBlock(current.blockType, index)
       return
     }
-    const from = currentBlocks().findIndex((b) => b.id === current.id)
-    moveBlock(from, index > from ? index - 1 : index)
+    const blockIds = currentBlocks().map((b) => b.id)
+    const move = resolveMove({ activeId: current.id, overId: event.over?.id, blockIds })
+    if (move) moveBlock(move.from, move.to)
   }
 
-  const handleCancel = () => {
-    setActive(null)
-    setDropIndex(null)
-  }
+  const handleCancel = () => finish()
+
+  const Icon = active?.kind === 'palette' ? registry[active.blockType].icon : null
+  const activeLabel = active
+    ? registry[active.kind === 'palette' ? active.blockType : active.type].label
+    : null
 
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={collision}
+      accessibility={{ announcements, screenReaderInstructions }}
+      autoScroll={{ acceleration: 14, threshold: { x: 0, y: 0.18 } }}
       onDragStart={handleStart}
       onDragMove={handleMove}
       onDragOver={handleMove}
@@ -100,11 +139,12 @@ export default function Workspace() {
       onDragCancel={handleCancel}
     >
       <LeftSidebar />
-      <Canvas dropIndex={dropIndex} draggingId={active?.kind === 'block' ? active.id : null} />
+      <Canvas dropIndex={dropIndex} dragKind={active?.kind ?? null} layoutEnabled={!layoutLocked} />
       <Inspector />
-      <DragOverlay dropAnimation={null}>
+      <DragOverlay dropAnimation={lastKind === 'block' ? DROP_ANIMATION : null}>
         {activeLabel && (
-          <div className="cursor-grabbing rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-xl">
+          <div className="flex cursor-grabbing items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-2xl ring-4 ring-indigo-400/30">
+            {Icon ? <Icon size={16} /> : <GripVertical size={16} />}
             {activeLabel}
           </div>
         )}

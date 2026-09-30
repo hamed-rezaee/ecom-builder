@@ -1,7 +1,13 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
+  CircleAlert,
+  CircleCheck,
   Download,
   Eye,
+  FileDown,
+  FileUp,
+  Keyboard,
+  LoaderCircle,
   Monitor,
   Redo2,
   Smartphone,
@@ -9,6 +15,8 @@ import {
   Tablet,
   Undo2,
 } from 'lucide-react'
+import { useSaveStatus } from '../store/saveStatus'
+import { MAX_IMPORT_BYTES, downloadSiteJson, parseSiteFile } from '../export/siteJson'
 import { selectPage, useSiteStore } from '../store/useSiteStore'
 import { toast } from '../store/toastStore'
 import { cn } from '../utils/helpers'
@@ -38,7 +46,23 @@ function IconButton({ label, onClick, disabled, active, children }) {
   )
 }
 
-export default function TopBar({ onPreview }) {
+function SaveIndicator() {
+  const status = useSaveStatus((s) => s.status)
+  const map = {
+    saved: { icon: CircleCheck, text: 'Saved', tone: 'text-emerald-600' },
+    saving: { icon: LoaderCircle, text: 'Saving…', tone: 'text-slate-500', spin: true },
+    error: { icon: CircleAlert, text: 'Not saved', tone: 'text-red-600' },
+  }
+  const { icon: Icon, text, tone, spin } = map[status]
+  return (
+    <span role="status" className={cn('inline-flex items-center gap-1 text-xs font-medium', tone)}>
+      <Icon size={14} className={spin ? 'animate-spin' : undefined} />
+      {text}
+    </span>
+  )
+}
+
+export default function TopBar({ onPreview, onHelp }) {
   const site = useSiteStore((s) => s.site)
   const page = useSiteStore(selectPage)
   const device = useSiteStore((s) => s.device)
@@ -46,6 +70,25 @@ export default function TopBar({ onPreview }) {
   const canRedo = useSiteStore((s) => s.future.length > 0)
   const { setDevice, setCurrentPage, undo, redo, updateSiteName } = useSiteStore()
   const [exporting, setExporting] = useState(false)
+  const fileRef = useRef(null)
+
+  async function handleImport(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    try {
+      if (file.size > MAX_IMPORT_BYTES) throw new Error('File is larger than 10 MB.')
+      const imported = parseSiteFile(await file.text())
+      useSiteStore.getState().importSite(imported)
+      toast('Site imported.', { type: 'success', action: { label: 'Undo', onClick: undo } })
+    } catch (err) {
+      toast(`Import failed: ${err.message}`, { type: 'error' })
+    }
+  }
+
+  function handleExportJson() {
+    downloadSiteJson(useSiteStore.getState().site)
+  }
 
   async function handleExport() {
     setExporting(true)
@@ -102,6 +145,27 @@ export default function TopBar({ onPreview }) {
         </IconButton>
       </div>
 
+      <SaveIndicator />
+      <div className="flex items-center gap-0.5">
+        <IconButton label="Import site JSON" onClick={() => fileRef.current?.click()}>
+          <FileUp size={18} />
+        </IconButton>
+        <IconButton label="Export site JSON (backup)" onClick={handleExportJson}>
+          <FileDown size={18} />
+        </IconButton>
+        <IconButton label="Keyboard shortcuts (?)" onClick={onHelp}>
+          <Keyboard size={18} />
+        </IconButton>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          aria-hidden="true"
+          tabIndex={-1}
+          onChange={handleImport}
+        />
+      </div>
       <button
         type="button"
         onClick={onPreview}

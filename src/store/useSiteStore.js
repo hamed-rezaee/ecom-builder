@@ -1,17 +1,54 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { createBlock } from '../blocks/registry';
+import { createBlock, registry } from '../blocks/registry';
 import { createStarterSite } from '../data/starterSite';
+import { normalizeSite } from '../export/siteJson';
+import { GLOBAL_IDS, nudgeBlocks } from '../utils/dnd';
 import { slugify, uid } from '../utils/helpers';
+import { setSaveStatus } from './saveStatus';
 import { toast } from './toastStore';
 
 const HISTORY_LIMIT = 80;
-const GLOBAL_IDS = ['header', 'footer'];
+const SAVE_DELAY = 400;
 
 let lastKey = null;
 let lastTime = 0;
 let lastStorageToast = 0;
 
+let pending = null;
+let saveTimer = null;
+let lastSaved = null;
+
+function flushSave() {
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  if (!pending) return;
+  const { name, value } = pending;
+  pending = null;
+  try {
+    localStorage.setItem(name, JSON.stringify(value));
+    setSaveStatus('saved');
+  } catch {
+    setSaveStatus('error');
+    const now = Date.now();
+    if (now - lastStorageToast > 5000) {
+      lastStorageToast = now;
+      toast(
+        'Browser storage is full. Export your site or remove large images.',
+        { type: 'error' },
+      );
+    }
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', flushSave);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushSave();
+  });
+}
+
+// Writes are debounced; only site or page changes are persisted.
 const storage = {
   getItem: (name) => {
     try {
@@ -22,20 +59,18 @@ const storage = {
     }
   },
   setItem: (name, value) => {
-    try {
-      localStorage.setItem(name, JSON.stringify(value));
-    } catch {
-      const now = Date.now();
-      if (now - lastStorageToast > 5000) {
-        lastStorageToast = now;
-        toast(
-          'Browser storage is full. Export your site or remove large images.',
-          {
-            type: 'error',
-          },
-        );
-      }
-    }
+    const { site, currentPageId } = value.state;
+    if (
+      lastSaved &&
+      lastSaved.site === site &&
+      lastSaved.currentPageId === currentPageId
+    )
+      return;
+    lastSaved = { site, currentPageId };
+    pending = { name, value };
+    setSaveStatus('saving');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flushSave, SAVE_DELAY);
   },
   removeItem: (name) => {
     try {
@@ -60,6 +95,19 @@ const uniqueSlug = (base, pages) => {
   return slug;
 };
 
+const NONE = { selectedId: null, selectedIds: [] };
+
+const only = (id) => {
+  if (!id) return NONE;
+  return GLOBAL_IDS.includes(id)
+    ? { selectedId: id, selectedIds: [] }
+    : { selectedId: id, selectedIds: [id] };
+};
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+const cloneBlock = (b) => ({ ...structuredClone(b), id: uid('b') });
+
 const initialSite = createStarterSite();
 
 const validPageId = (site, id) =>
@@ -83,17 +131,46 @@ export const useSiteStore = create(
         });
       };
 
+      const pageBlocks = () => {
+        const { site, currentPageId } = get();
+        return (site.pages.find((p) => p.id === currentPageId) ?? site.pages[0])
+          .blocks;
+      };
+
+      const say = (announcement) => set({ announcement });
+
       return {
         site: initialSite,
         currentPageId: initialSite.pages[0].id,
-        selectedId: null,
+        ...NONE,
         device: 'desktop',
         past: [],
         future: [],
+        clipboard: [],
+        announcement: '',
 
-        select: (id) => set({ selectedId: id }),
+        select: (id) => set(only(id)),
+        toggleSelect: (id) => {
+          const { selectedIds } = get();
+          const ids = selectedIds.includes(id)
+            ? selectedIds.filter((x) => x !== id)
+            : [...selectedIds, id];
+          set({ selectedIds: ids, selectedId: ids.at(-1) ?? null });
+        },
+        selectRange: (id) => {
+          const ids = pageBlocks().map((b) => b.id);
+          const anchor = ids.indexOf(get().selectedId);
+          const target = ids.indexOf(id);
+          if (anchor < 0 || target < 0) return set(only(id));
+          const [a, b] = anchor < target ? [anchor, target] : [target, anchor];
+          set({ selectedIds: ids.slice(a, b + 1), selectedId: id });
+        },
+        selectAll: () => {
+          const ids = pageBlocks().map((b) => b.id);
+          if (ids.length) set({ selectedIds: ids, selectedId: ids.at(-1) });
+        },
         setDevice: (device) => set({ device }),
-        setCurrentPage: (id) => set({ currentPageId: id, selectedId: null }),
+        setCurrentPage: (id) => set({ currentPageId: id, ...NONE }),
 
         undo: () => {
           const { past, future, site } = get();
@@ -105,7 +182,7 @@ export const useSiteStore = create(
             currentPageId: validPageId(prev, get().currentPageId),
             past: past.slice(0, -1),
             future: [site, ...future],
-            selectedId: null,
+            ...NONE,
           });
         },
         redo: () => {
@@ -117,7 +194,7 @@ export const useSiteStore = create(
             currentPageId: validPageId(future[0], get().currentPageId),
             past: [...past, site],
             future: future.slice(1),
-            selectedId: null,
+            ...NONE,
           });
         },
         resetSite: () => {
@@ -126,10 +203,14 @@ export const useSiteStore = create(
           set({
             site: fresh,
             currentPageId: fresh.pages[0].id,
-            selectedId: null,
+            ...NONE,
             past: [],
             future: [],
           });
+        },
+        importSite: (site) => {
+          commit(() => site);
+          set({ currentPageId: site.pages[0].id, ...NONE });
         },
 
         addBlock: (type, index) => {
@@ -142,11 +223,13 @@ export const useSiteStore = create(
               return next;
             }),
           );
-          set({ selectedId: block.id });
+          set(only(block.id));
+          say(`Added ${registry[type].label} block.`);
         },
         moveBlock: (from, to) => {
           if (from === to) return;
           const pageId = get().currentPageId;
+          const moved = pageBlocks()[from];
           commit((site) =>
             updateBlocks(site, pageId, (blocks) => {
               const next = [...blocks];
@@ -154,32 +237,84 @@ export const useSiteStore = create(
               return next;
             }),
           );
+          if (moved)
+            say(
+              `Moved ${registry[moved.type].label} to position ${to + 1} of ${pageBlocks().length}.`,
+            );
         },
-        duplicateBlock: (id) => {
+        moveSelected: (direction) => {
+          const { selectedIds, currentPageId } = get();
+          if (!selectedIds.length) return;
+          const blocks = pageBlocks();
+          const next = nudgeBlocks(blocks, new Set(selectedIds), direction);
+          if (next === blocks) return;
+          commit((site) => updateBlocks(site, currentPageId, () => next));
+          say(
+            `Moved ${plural(selectedIds.length, 'block')} ${direction < 0 ? 'up' : 'down'}.`,
+          );
+        },
+        duplicateBlocks: (ids) => {
           const pageId = get().currentPageId;
-          const copyId = uid('b');
+          const wanted = new Set(ids);
+          const source = pageBlocks().filter((b) => wanted.has(b.id));
+          if (!source.length) return;
+          const copies = source.map(cloneBlock);
+          const after = pageBlocks().findLastIndex((b) => wanted.has(b.id));
           commit((site) =>
             updateBlocks(site, pageId, (blocks) => {
-              const i = blocks.findIndex((b) => b.id === id);
-              if (i < 0) return blocks;
               const next = [...blocks];
-              next.splice(i + 1, 0, {
-                ...structuredClone(blocks[i]),
-                id: copyId,
-              });
+              next.splice(after + 1, 0, ...copies);
               return next;
             }),
           );
-          set({ selectedId: copyId });
+          const newIds = copies.map((b) => b.id);
+          set({ selectedIds: newIds, selectedId: newIds.at(-1) });
+          say(`Duplicated ${plural(copies.length, 'block')}.`);
         },
-        removeBlock: (id) => {
+        duplicateBlock: (id) => get().duplicateBlocks([id]),
+        removeBlocks: (ids) => {
           const pageId = get().currentPageId;
+          const doomed = new Set(ids);
           commit((site) =>
-            updateBlocks(site, pageId, (blocks) =>
-              blocks.filter((b) => b.id !== id),
-            ),
+            updateBlocks(site, pageId, (blocks) => {
+              const next = blocks.filter((b) => !doomed.has(b.id));
+              return next.length === blocks.length ? blocks : next;
+            }),
           );
-          set({ selectedId: null });
+          set(NONE);
+          say(`Deleted ${plural(doomed.size, 'block')}.`);
+        },
+        removeBlock: (id) => get().removeBlocks([id]),
+
+        copySelected: () => {
+          const ids = new Set(get().selectedIds);
+          const blocks = pageBlocks().filter((b) => ids.has(b.id));
+          if (!blocks.length) return 0;
+          set({ clipboard: structuredClone(blocks) });
+          return blocks.length;
+        },
+        cutSelected: () => {
+          const count = get().copySelected();
+          if (count) get().removeBlocks(get().selectedIds);
+          return count;
+        },
+        paste: () => {
+          const { clipboard, currentPageId, selectedIds } = get();
+          if (!clipboard.length) return 0;
+          const copies = clipboard.map(cloneBlock);
+          const sel = new Set(selectedIds);
+          const at = pageBlocks().findLastIndex((b) => sel.has(b.id));
+          commit((site) =>
+            updateBlocks(site, currentPageId, (blocks) => {
+              const next = [...blocks];
+              next.splice(at < 0 ? next.length : at + 1, 0, ...copies);
+              return next;
+            }),
+          );
+          const ids = copies.map((b) => b.id);
+          set({ selectedIds: ids, selectedId: ids.at(-1) });
+          say(`Pasted ${plural(copies.length, 'block')}.`);
+          return copies.length;
         },
         updateProps: (id, patch) => {
           const pageId = get().currentPageId;
@@ -204,7 +339,7 @@ export const useSiteStore = create(
             blocks: [createBlock('richText', { heading: title })],
           };
           commit((site) => ({ ...site, pages: [...site.pages, page] }));
-          set({ currentPageId: page.id, selectedId: null });
+          set({ currentPageId: page.id, ...NONE });
         },
         renamePage: (id, name) =>
           commit(
@@ -223,13 +358,10 @@ export const useSiteStore = create(
             name: `${source.name} copy`,
             slug: uniqueSlug(`${source.slug}-copy`, get().site.pages),
             isHome: false,
-            blocks: source.blocks.map((b) => ({
-              ...structuredClone(b),
-              id: uid('b'),
-            })),
+            blocks: source.blocks.map(cloneBlock),
           };
           commit((site) => ({ ...site, pages: [...site.pages, page] }));
-          set({ currentPageId: page.id, selectedId: null });
+          set({ currentPageId: page.id, ...NONE });
         },
         deletePage: (id) => {
           const { site, currentPageId } = get();
@@ -237,7 +369,7 @@ export const useSiteStore = create(
           if (!page || page.isHome) return;
           commit((s) => ({ ...s, pages: s.pages.filter((p) => p.id !== id) }));
           if (currentPageId === id)
-            set({ currentPageId: site.pages[0].id, selectedId: null });
+            set({ currentPageId: site.pages[0].id, ...NONE });
         },
 
         addProduct: () => {
@@ -284,11 +416,24 @@ export const useSiteStore = create(
     },
     {
       name: 'ecom-builder-site',
-      version: 1,
+      version: 2,
       storage,
       partialize: (s) => ({ site: s.site, currentPageId: s.currentPageId }),
-      merge: (persisted, current) =>
-        persisted?.site?.pages?.length ? { ...current, ...persisted } : current,
+      // v1 and v2 share one shape; loading re-validates either.
+      migrate: (persisted) => persisted,
+      merge: (persisted, current) => {
+        if (!persisted?.site) return current;
+        try {
+          const site = normalizeSite(persisted.site);
+          return {
+            ...current,
+            site,
+            currentPageId: validPageId(site, persisted.currentPageId),
+          };
+        } catch {
+          return current;
+        }
+      },
     },
   ),
 );
