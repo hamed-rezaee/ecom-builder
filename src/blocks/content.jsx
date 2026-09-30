@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { placeholderImage, safeHref, safeSrc } from '../utils/helpers'
-import { GRID_STYLES, oneOf, safeHex } from '../utils/wireShapes'
+import { GRID_STYLES, IMAGE_SHAPES, IMAGE_SIZES, oneOf, safeHex } from '../utils/wireShapes'
 
 export function Hero({ props: p }) {
   const img = safeSrc(p.image)
@@ -100,18 +100,23 @@ export function ImageText({ props: p }) {
 }
 
 export function Features({ props: p }) {
+  const shape = oneOf(IMAGE_SHAPES, p.imageShape, 'rounded')
+  const size = oneOf(IMAGE_SIZES, p.imageSize, 'md')
   return (
     <section className="eb-section">
       <div className="eb-container">
         {p.heading && <h2 className="eb-heading eb-center">{p.heading}</h2>}
         <div className="eb-features">
-          {(p.items ?? []).map((item, i) => (
-            <div className="eb-feature" key={i}>
-              <div className="eb-feature-icon">{item.icon}</div>
-              <h3>{item.title}</h3>
-              {item.text && <p>{item.text}</p>}
-            </div>
-          ))}
+          {(p.items ?? []).map((item, i) => {
+            const img = safeSrc(item.image) || placeholderImage(item.title)
+            return (
+              <div className="eb-feature" key={i}>
+                <img className={`eb-feature-img eb-feature-img-${shape} eb-feature-img-${size}`} src={img} alt="" />
+                <h3>{item.title}</h3>
+                {item.text && <p>{item.text}</p>}
+              </div>
+            )
+          })}
         </div>
       </div>
     </section>

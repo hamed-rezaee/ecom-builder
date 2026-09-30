@@ -170,7 +170,12 @@
 /* Features */
 .eb-features { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 32px; margin-top: 32px; }
 .eb-feature { text-align: center; }
-.eb-feature-icon { display: flex; align-items: center; justify-content: center; width: 64px; height: 64px; margin: 0 auto 12px; border-radius: 50%; background: var(--eb-surface); font-size: 1.75rem; }
+.eb-feature-img { --eb-fi: 180px; display: block; width: 100%; height: var(--eb-fi); margin: 0 auto 12px; object-fit: cover; }
+.eb-feature-img-sm { --eb-fi: 120px; }
+.eb-feature-img-lg { --eb-fi: 260px; }
+.eb-feature-img-square { border-radius: 0; }
+.eb-feature-img-rounded { border-radius: 8px; }
+.eb-feature-img-circle { width: var(--eb-fi); max-width: 100%; border-radius: 50%; }
 .eb-feature h3 { font-family: var(--eb-heading-font); font-size: 1.05rem; font-weight: var(--eb-heading-weight); }
 .eb-feature p { margin-top: 4px; font-size: 0.95rem; color: var(--eb-muted); }
 

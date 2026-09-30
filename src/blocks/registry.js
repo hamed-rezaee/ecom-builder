@@ -22,7 +22,13 @@ import {
   Testimonials,
 } from './content';
 import { FeaturedProduct, ProductGrid } from './commerce';
-import { GRID_STYLES, WIRE_SHAPES, WIRE_STYLES } from '../utils/wireShapes';
+import {
+  GRID_STYLES,
+  IMAGE_SHAPES,
+  IMAGE_SIZES,
+  WIRE_SHAPES,
+  WIRE_STYLES,
+} from '../utils/wireShapes';
 
 const text = (key, label) => ({ key, label, type: 'text' });
 const area = (key, label) => ({ key, label, type: 'textarea' });
@@ -168,19 +174,21 @@ export const registry = {
     Component: Features,
     defaults: {
       heading: '',
+      imageShape: 'rounded',
+      imageSize: 'md',
       items: [
         {
-          icon: '🚚',
+          image: '',
           title: 'Fast shipping',
           text: 'Orders leave in 24 hours.',
         },
         {
-          icon: '↩️',
+          image: '',
           title: 'Easy returns',
           text: '30 days, no questions asked.',
         },
         {
-          icon: '🔒',
+          image: '',
           title: 'Secure checkout',
           text: 'Your details stay private.',
         },
@@ -188,14 +196,16 @@ export const registry = {
     },
     fields: [
       text('heading', 'Heading'),
+      select('imageShape', 'Image shape', IMAGE_SHAPES),
+      select('imageSize', 'Image size', IMAGE_SIZES),
       {
         key: 'items',
         label: 'Features',
         type: 'list',
         itemLabel: 'Feature',
-        newItem: { icon: '⭐', title: 'New feature', text: '' },
+        newItem: { image: '', title: 'New feature', text: '' },
         itemFields: [
-          text('icon', 'Icon (emoji)'),
+          image('image', 'Image'),
           text('title', 'Title'),
           text('text', 'Text'),
         ],

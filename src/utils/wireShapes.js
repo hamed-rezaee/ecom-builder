@@ -16,6 +16,18 @@ export const WIRE_STYLES = [
   ['both', 'Lines and dots'],
 ];
 
+export const IMAGE_SHAPES = [
+  ['square', 'Square'],
+  ['rounded', 'Rounded'],
+  ['circle', 'Circle'],
+];
+
+export const IMAGE_SIZES = [
+  ['sm', 'Small'],
+  ['md', 'Medium'],
+  ['lg', 'Large'],
+];
+
 export const GRID_STYLES = [
   ['none', 'None'],
   ['scroll', 'Scrolling grid'],
