@@ -1,0 +1,23 @@
+HERO
+---
+<section class="eb-hero eb-hero-lg"><div class="eb-hero-wire" data-wire="{&quot;shape&quot;:&quot;terrain&quot;,&quot;color&quot;:&quot;#ffffff&quot;,&quot;speed&quot;:50,&quot;interactive&quot;:true}"></div><div class="eb-container eb-hero-inner"><h1>Everyday goods, made to last</h1><p>Thoughtfully designed essentials for your home and daily routine.</p><a class="eb-btn" href="#/p/shop">Shop the collection</a></div></s
+---
+HTMLCOMMENT
+---
+false
+---
+SCRIPTCLOSE
+---
+false
+---
+len
+---
+565643
+---
+EBWIRE idx
+---
+553664
+---
+ispose(),i.dispose(),a.remove()}}window.EBWire={mountAll(){document.querySelectorAll(`.eb-hero-wire:not([data-wire-ready
+---
+SYNTAX OK

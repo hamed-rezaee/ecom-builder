@@ -22,6 +22,7 @@ import {
   Testimonials,
 } from './content';
 import { FeaturedProduct, ProductGrid } from './commerce';
+import { WIRE_SHAPES } from '../utils/wireShapes';
 
 const text = (key, label) => ({ key, label, type: 'text' });
 const area = (key, label) => ({ key, label, type: 'textarea' });
@@ -48,6 +49,11 @@ export const registry = {
       image: '',
       align: 'left',
       height: 'md',
+      wire: false,
+      wireShape: 'terrain',
+      wireColor: '#ffffff',
+      wireSpeed: 50,
+      wireInteractive: true,
     },
     fields: [
       text('heading', 'Heading'),
@@ -64,6 +70,21 @@ export const registry = {
         ['md', 'Medium'],
         ['lg', 'Large'],
       ]),
+      { key: 'wire', label: 'Wireframe animation', type: 'toggle' },
+      select('wireShape', 'Wireframe shape', WIRE_SHAPES),
+      { key: 'wireColor', label: 'Wireframe color', type: 'color' },
+      {
+        key: 'wireSpeed',
+        label: 'Wireframe speed',
+        type: 'range',
+        min: 0,
+        max: 100,
+      },
+      {
+        key: 'wireInteractive',
+        label: 'React to pointer (Preview and export)',
+        type: 'toggle',
+      },
     ],
   },
   productGrid: {

@@ -1,7 +1,29 @@
+import { useEffect, useRef } from 'react'
 import { placeholderImage, safeHref, safeSrc } from '../utils/helpers'
 
 export function Hero({ props: p }) {
   const img = safeSrc(p.image)
+  const wireRef = useRef(null)
+  const wire = p.wire === true
+  const { wireShape, wireColor, wireSpeed } = p
+
+  // Client-only: exported sites mount the wireframe from the runtime instead.
+  useEffect(() => {
+    const el = wireRef.current
+    if (!wire || !el) return undefined
+    let dispose
+    let cancelled = false
+    import('../utils/wireframe').then(({ mountWireframe }) => {
+      if (!cancelled) {
+        dispose = mountWireframe(el, { shape: wireShape, color: wireColor, speed: wireSpeed, interactive: false })
+      }
+    })
+    return () => {
+      cancelled = true
+      dispose?.()
+    }
+  }, [wire, wireShape, wireColor, wireSpeed])
+
   return (
     <section
       className={`eb-hero eb-hero-${p.height ?? 'md'}${p.align === 'center' ? ' eb-center' : ''}`}
@@ -11,6 +33,18 @@ export function Hero({ props: p }) {
           <img className="eb-hero-bg" src={img} alt="" />
           <div className="eb-hero-overlay" />
         </>
+      )}
+      {wire && (
+        <div
+          ref={wireRef}
+          className="eb-hero-wire"
+          data-wire={JSON.stringify({
+            shape: p.wireShape,
+            color: p.wireColor,
+            speed: p.wireSpeed,
+            interactive: p.wireInteractive !== false,
+          })}
+        />
       )}
       <div className="eb-container eb-hero-inner">
         {p.heading && <h1>{p.heading}</h1>}

@@ -71,6 +71,10 @@
 .eb-hero-lg { min-height: 640px; }
 .eb-hero-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .eb-hero-overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); }
+.eb-hero-wire { position: absolute; inset: 0; pointer-events: none; }
+.eb-wire-host { touch-action: pan-y; cursor: grab; }
+.eb-wire-host:active { cursor: grabbing; }
+.eb-wire-host :is(a, button, input) { cursor: pointer; }
 .eb-hero-inner { position: relative; width: 100%; padding-top: 64px; padding-bottom: 64px; }
 .eb-hero h1 { font-family: var(--eb-heading-font); font-size: clamp(2rem, 7cqi, 3.5rem); line-height: 1.1; font-weight: min(900, calc(var(--eb-heading-weight) + 100)); letter-spacing: -0.02em; max-width: 18ch; }
 .eb-hero p { font-size: 1.15rem; margin-top: 16px; max-width: 52ch; opacity: 0.92; }

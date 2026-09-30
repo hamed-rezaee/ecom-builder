@@ -2,8 +2,10 @@ import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react'
 import { useSiteStore } from '../store/useSiteStore'
 import { linkOptions } from '../utils/helpers'
 import {
+  ColorInput,
   ImageInput,
   NumberInput,
+  RangeInput,
   SelectInput,
   TextArea,
   TextInput,
@@ -118,6 +120,10 @@ export default function FieldRenderer({ field, value, onChange }) {
       return <SelectInput label={label} value={value} onChange={onChange} options={field.options} />
     case 'toggle':
       return <Toggle label={label} value={value} onChange={onChange} />
+    case 'color':
+      return <ColorInput label={label} value={value} onChange={onChange} />
+    case 'range':
+      return <RangeInput label={label} value={value} onChange={onChange} min={field.min} max={field.max} />
     case 'image':
       return <ImageInput label={label} value={value} onChange={onChange} />
     case 'link':

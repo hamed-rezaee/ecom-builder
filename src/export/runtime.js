@@ -374,4 +374,6 @@
   initTheme();
   route();
   initAnimations();
+  // Hidden routes have zero size; the wireframe resumes on its own when they show.
+  if (window.EBWire) window.EBWire.mountAll();
 })();

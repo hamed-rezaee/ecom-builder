@@ -4,6 +4,7 @@ import aosJs from 'aos/dist/aos.js?raw'
 import blocksCss from '../blocks/blocks.css?raw'
 import { googleFontsUrl } from '../data/fonts'
 import runtime from './runtime.js?raw'
+import wireJs from './wireEntry.js?iife'
 import SiteRoot from './SiteRoot'
 import { productImage } from '../utils/helpers'
 import { normalizeTheme, themeCss, usedGoogleFonts } from '../utils/theme'
@@ -35,7 +36,8 @@ export function buildSite(rawSite, { inline = false } = {}) {
   }).replace(/</g, '\\u003c')
 
   const css = `${aosCss}\n${blocksCss}\n${themeCss(theme, inline ? {} : { fontSrc: fontPath })}\nbody { margin: 0; }\n`
-  const js = `${aosJs}\n;\n${runtime}`
+  const usesWire = site.pages.some((pg) => pg.blocks.some((b) => b.type === 'hero' && b.props.wire === true))
+  const js = `${aosJs}\n;\n${usesWire ? `${wireJs}\n;\n` : ''}${runtime}`
 
   // Uploaded fonts are files in the ZIP; the inline preview embeds them in the CSS instead.
   const files = inline
