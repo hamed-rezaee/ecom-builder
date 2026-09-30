@@ -26,6 +26,8 @@ export function buildSite(rawSite, { inline = false } = {}) {
     currency: theme.currency,
     darkMode: theme.darkMode,
     pageTransition: theme.pageTransition,
+    smoothScroll: theme.smoothScroll,
+    scrollProgress: theme.scrollProgress,
     anim: { duration: theme.animDuration, easing: theme.animEasing, once: theme.animOnce },
     products: site.products.map((p) => ({
       id: p.id,

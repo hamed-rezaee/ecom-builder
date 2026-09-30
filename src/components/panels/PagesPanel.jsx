@@ -99,7 +99,7 @@ export default function PagesPanel() {
           onChange={(e) => setNewName(e.target.value)}
           placeholder="New page name"
           aria-label="New page name"
-          className="min-w-0 flex-1 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+          className="min-w-0 flex-1 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         />
         <button
           type="submit"

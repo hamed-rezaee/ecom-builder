@@ -64,7 +64,13 @@ export function createStarterSite() {
 
   return {
     name: 'Lumen & Co.',
-    theme: { ...DEFAULT_THEME, customFonts: [] },
+    theme: {
+      ...DEFAULT_THEME,
+      animEntrance: 'fade-up',
+      smoothScroll: true,
+      scrollProgress: true,
+      customFonts: [],
+    },
     themePresets: [],
     header: {
       logoText: 'Lumen & Co.',

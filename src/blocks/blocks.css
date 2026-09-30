@@ -37,7 +37,7 @@
   font-weight: 600; cursor: pointer; transition: filter 0.15s;
 }
 .eb-btn:hover { filter: brightness(0.92); }
-.eb-btn-outline { background: transparent; color: var(--eb-text); border: 1.5px solid var(--eb-border); }
+.eb-btn-outline { background: transparent; color: var(--eb-text); border: 1px solid var(--eb-border); }
 .eb-btn-sm { padding: 8px 16px; font-size: 0.9rem; }
 
 /* Header */
@@ -63,9 +63,10 @@
 
 /* Hero */
 .eb-hero {
-  position: relative; display: flex; align-items: center; overflow: hidden; color: #fff;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--eb-primary) 60%, #000), color-mix(in srgb, var(--eb-primary) 30%, #000));
+  position: relative; display: flex; align-items: center; overflow: hidden;
+  color: var(--eb-on-primary); background: var(--eb-primary);
 }
+.eb-hero:has(.eb-hero-bg) { color: #fff; }
 .eb-hero-sm { min-height: 320px; }
 .eb-hero-md { min-height: 480px; }
 .eb-hero-lg { min-height: 640px; }
@@ -134,7 +135,7 @@
 .eb-hero-inner { position: relative; width: 100%; padding-top: 64px; padding-bottom: 64px; }
 .eb-hero h1 { font-family: var(--eb-heading-font); font-size: clamp(2rem, 7cqi, 3.5rem); line-height: 1.1; font-weight: min(900, calc(var(--eb-heading-weight) + 100)); letter-spacing: -0.02em; max-width: 18ch; }
 .eb-hero p { font-size: 1.15rem; margin-top: 16px; max-width: 52ch; opacity: 0.92; }
-.eb-hero .eb-btn { margin-top: 28px; background: #fff; color: #111; }
+.eb-hero .eb-btn { margin-top: 28px; background: var(--eb-bg); color: var(--eb-text); }
 .eb-hero.eb-center h1, .eb-hero.eb-center p { margin-left: auto; margin-right: auto; }
 
 /* Product grid + cards */
@@ -142,8 +143,8 @@
 @container (max-width: 900px) {
   .eb-grid { grid-template-columns: repeat(min(var(--eb-cols, 3), 2), minmax(0, 1fr)); }
 }
-.eb-card { display: flex; flex-direction: column; background: var(--eb-bg); border: 1px solid var(--eb-border); border-radius: var(--eb-radius); overflow: hidden; box-shadow: var(--eb-shadow); transition: box-shadow 0.2s, transform 0.2s; }
-.eb-card:hover { box-shadow: 0 8px 24px rgb(0 0 0 / 0.08); transform: translateY(-2px); }
+.eb-card { display: flex; flex-direction: column; background: var(--eb-bg); border: 1px solid var(--eb-border); border-radius: var(--eb-radius); overflow: hidden; box-shadow: var(--eb-shadow); transition: border-color 0.2s; }
+.eb-card:hover { border-color: color-mix(in srgb, var(--eb-primary) 50%, var(--eb-border)); }
 .eb-card-img { aspect-ratio: 1; width: 100%; object-fit: cover; background: var(--eb-surface); }
 .eb-card-body { display: flex; flex-direction: column; gap: 4px; flex: 1; padding: 14px 16px 16px; }
 .eb-card-title { font-weight: 600; }
@@ -257,10 +258,10 @@
 .eb-hover-lift :is(.eb-card, .eb-quote, .eb-feature, .eb-btn, .eb-split img),
 .eb-hover-scale :is(.eb-card, .eb-quote, .eb-feature, .eb-btn, .eb-split img),
 .eb-hover-glow :is(.eb-card, .eb-quote, .eb-feature, .eb-btn, .eb-split img) { transition: transform 0.25s ease, box-shadow 0.25s ease; }
-.eb-hover-lift :is(.eb-card, .eb-quote, .eb-feature, .eb-btn, .eb-split img):hover { transform: translateY(-6px); box-shadow: 0 14px 30px rgb(0 0 0 / 0.16); }
+.eb-hover-lift :is(.eb-card, .eb-quote, .eb-feature, .eb-btn, .eb-split img):hover { transform: translateY(-3px); }
 .eb-hover-scale :is(.eb-card, .eb-quote, .eb-feature, .eb-btn, .eb-split img):hover { transform: scale(1.04); }
 .eb-hover-glow :is(.eb-card, .eb-quote, .eb-feature, .eb-btn, .eb-split img):hover {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--eb-primary) 35%, transparent), 0 8px 28px color-mix(in srgb, var(--eb-primary) 40%, transparent);
+  box-shadow: 0 0 0 2px var(--eb-primary);
 }
 
 /* Page transitions, toggled by the runtime on route change. */
@@ -268,7 +269,23 @@
 @keyframes eb-pt-slide { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
 .eb-pt-fade { animation: eb-pt-fade 0.35s ease both; }
 .eb-pt-slide { animation: eb-pt-slide 0.4s ease both; }
+
+/* Scroll effects, enabled by the runtime. */
+html.eb-smooth { scroll-behavior: smooth; }
+.eb-scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--eb-primary, #4f46e5);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  z-index: 1000;
+  pointer-events: none;
+}
 @media (prefers-reduced-motion: reduce) {
+  html.eb-smooth { scroll-behavior: auto; }
   .eb-pt-fade, .eb-pt-slide { animation: none; }
   .eb-hero-grid, .eb-hero-grid::before, .eb-hero-grid::after { animation: none; }
   .eb-hover-lift :is(.eb-card, .eb-quote, .eb-feature, .eb-btn, .eb-split img):hover,

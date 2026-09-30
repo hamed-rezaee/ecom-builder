@@ -143,7 +143,7 @@ export default function Workspace() {
       <Inspector />
       <DragOverlay dropAnimation={lastKind === 'block' ? DROP_ANIMATION : null}>
         {activeLabel && (
-          <div className="flex cursor-grabbing items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-2xl ring-4 ring-indigo-400/30">
+          <div className="flex cursor-grabbing items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white">
             {Icon ? <Icon size={16} /> : <GripVertical size={16} />}
             {activeLabel}
           </div>

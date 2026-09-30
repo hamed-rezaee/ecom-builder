@@ -351,6 +351,16 @@ export default function ThemePanel() {
           options={PAGE_TRANSITIONS}
           onChange={(v) => updateTheme({ pageTransition: v })}
         />
+        <Toggle
+          label="Smooth scrolling"
+          value={theme.smoothScroll}
+          onChange={(v) => updateTheme({ smoothScroll: v })}
+        />
+        <Toggle
+          label="Scroll progress bar"
+          value={theme.scrollProgress}
+          onChange={(v) => updateTheme({ scrollProgress: v })}
+        />
       </Section>
 
       <Section title="Dark mode">

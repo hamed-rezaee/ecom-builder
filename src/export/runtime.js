@@ -259,7 +259,35 @@
     }
     // Routes toggle `hidden`, so AOS must re-measure positions.
     if (aosReady) window.AOS.refreshHard();
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  function initScrollEffects() {
+    if (data.smoothScroll && !reduced) {
+      document.documentElement.classList.add('eb-smooth');
+    }
+    if (!data.scrollProgress) return;
+    var bar = el('div', 'eb-scroll-progress');
+    bar.setAttribute('aria-hidden', 'true');
+    (themeRoot() || document.body).appendChild(bar);
+    var ticking = false;
+    function update() {
+      ticking = false;
+      var max = document.documentElement.scrollHeight - window.innerHeight;
+      var ratio = max > 0 ? window.scrollY / max : 0;
+      bar.style.transform = 'scaleX(' + Math.min(1, Math.max(0, ratio)) + ')';
+    }
+    window.addEventListener(
+      'scroll',
+      function () {
+        if (ticking) return;
+        ticking = true;
+        window.requestAnimationFrame(update);
+      },
+      { passive: true },
+    );
+    window.addEventListener('resize', update);
+    update();
   }
 
   function initAnimations() {
@@ -374,6 +402,7 @@
   initTheme();
   route();
   initAnimations();
+  initScrollEffects();
   // Hidden routes have zero size; the wireframe resumes on its own when they show.
   if (window.EBWire) window.EBWire.mountAll();
 })();

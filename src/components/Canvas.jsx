@@ -22,7 +22,7 @@ function DropIndicator({ position }) {
       layoutId="drop-indicator"
       transition={{ type: 'spring', stiffness: 600, damping: 45 }}
       className={cn(
-        'pointer-events-none absolute inset-x-0 z-40 h-1 rounded-full bg-indigo-500 shadow-[0_0_14px_rgba(99,102,241,0.8)]',
+        'pointer-events-none absolute inset-x-0 z-40 h-1 rounded-full bg-indigo-500',
         position === 'before' ? '-top-0.5' : '-bottom-0.5',
       )}
     >
@@ -128,7 +128,7 @@ function CanvasBlock({ block, index, total, selected, multi, dragging, layoutEna
       />
       <div
         className={cn(
-          'absolute left-2 top-2 z-20 flex items-center overflow-hidden rounded-md bg-indigo-600 text-xs text-white shadow-md transition duration-150',
+          'absolute left-2 top-2 z-20 flex items-center overflow-hidden rounded-md bg-indigo-600 text-xs text-white transition duration-150',
           dragging
             ? 'pointer-events-none opacity-0'
             : selected
@@ -206,7 +206,7 @@ function GlobalBlock({ id, selected }) {
       />
       <span
         className={cn(
-          'absolute left-2 top-2 z-30 rounded-md bg-indigo-600 px-2 py-1 text-xs font-medium text-white shadow-md',
+          'absolute left-2 top-2 z-30 rounded-md bg-indigo-600 px-2 py-1 text-xs font-medium text-white',
           selected ? 'block' : 'hidden group-hover:block',
         )}
       >
@@ -240,7 +240,7 @@ export default function Canvas({ dropIndex, dragKind, layoutEnabled }) {
         {announcement}
       </div>
       <div
-        className="mx-auto overflow-hidden rounded-lg bg-white shadow-xl ring-1 ring-black/5 transition-[max-width] duration-300"
+        className="mx-auto overflow-hidden rounded-lg bg-white ring-1 ring-slate-200 transition-[max-width] duration-300"
         style={{ maxWidth: DEVICE_WIDTH[device] }}
       >
         <div

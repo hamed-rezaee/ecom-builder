@@ -83,7 +83,7 @@ export default function PreviewModal({ onClose }) {
           title="Site preview"
           srcDoc={html}
           sandbox="allow-scripts allow-forms"
-          className="h-full rounded-lg bg-white shadow-2xl transition-[width] duration-300"
+          className="h-full rounded-lg bg-white transition-[width] duration-300"
           style={{ width: width ?? '100%' }}
         />
       </motion.div>

@@ -29,7 +29,7 @@ function PaletteItem({ type }) {
       {...pointerListeners}
       {...attributes}
       onClick={insertAfterSelected}
-      className={`flex touch-none cursor-grab flex-col items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-3 text-xs font-medium text-slate-700 shadow-sm transition duration-150 hover:-translate-y-0.5 hover:border-indigo-400 hover:text-indigo-600 hover:shadow-md focus-visible:outline-2 focus-visible:outline-indigo-500 active:scale-95 ${isDragging ? 'opacity-40' : ''}`}
+      className={`flex touch-none cursor-grab flex-col items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-3 text-xs font-medium text-slate-700 transition duration-150 hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-600 focus-visible:outline-2 focus-visible:outline-indigo-500 active:scale-95 ${isDragging ? 'opacity-40' : ''}`}
     >
       <Icon size={20} />
       {label}

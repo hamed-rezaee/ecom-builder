@@ -22,7 +22,7 @@ export default function Toasts() {
           exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.15 } }}
           transition={{ type: 'spring', stiffness: 500, damping: 35 }}
           className={cn(
-            'pointer-events-auto flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm text-white shadow-lg',
+            'pointer-events-auto flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm text-white',
             t.type === 'error' ? 'bg-red-600' : t.type === 'success' ? 'bg-emerald-600' : 'bg-slate-800',
           )}
         >
