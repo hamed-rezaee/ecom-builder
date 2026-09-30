@@ -8,8 +8,9 @@ import '../blocks/blocks.css'
 import { registry } from '../blocks/registry'
 import { selectPage, useSiteStore } from '../store/useSiteStore'
 import { END_ID } from '../utils/dnd'
-import { cn, themeVars } from '../utils/helpers'
+import { cn } from '../utils/helpers'
 import ErrorBoundary from './ErrorBoundary'
+import ThemeStyle from './ThemeStyle'
 
 const DEVICE_WIDTH = { desktop: '100%', tablet: '768px', mobile: '390px' }
 const EASE = [0.22, 1, 0.36, 1]
@@ -222,6 +223,7 @@ export default function Canvas({ dropIndex, dragKind, layoutEnabled }) {
   const site = useSiteStore((s) => s.site)
   const page = useSiteStore(selectPage)
   const device = useSiteStore((s) => s.device)
+  const themePreview = useSiteStore((s) => s.themePreview)
   const selectedId = useSiteStore((s) => s.selectedId)
   const selectedIds = useSiteStore((s) => s.selectedIds)
   const announcement = useSiteStore((s) => s.announcement)
@@ -241,7 +243,12 @@ export default function Canvas({ dropIndex, dragKind, layoutEnabled }) {
         className="mx-auto overflow-hidden rounded-lg bg-white shadow-xl ring-1 ring-black/5 transition-[max-width] duration-300"
         style={{ maxWidth: DEVICE_WIDTH[device] }}
       >
-        <div className="eb-site" style={{ ...themeVars(site.theme), minHeight: 640 }}>
+        <div
+          className="eb-site"
+          data-theme={site.theme.darkMode === 'off' ? undefined : themePreview}
+          style={{ minHeight: 640 }}
+        >
+          <ThemeStyle theme={site.theme} />
           <GlobalBlock id="header" selected={selectedId === 'header'} />
           <SortableContext items={blockIds} strategy={verticalListSortingStrategy}>
             <motion.div

@@ -1,4 +1,5 @@
 import { createBlock } from '../blocks/registry';
+import { DEFAULT_THEME } from '../utils/theme';
 import { uid } from '../utils/helpers';
 
 const product = (id, name, price, description) => ({
@@ -63,14 +64,8 @@ export function createStarterSite() {
 
   return {
     name: 'Lumen & Co.',
-    theme: {
-      primary: '#4f46e5',
-      background: '#ffffff',
-      text: '#111827',
-      font: 'sans',
-      radius: 10,
-      currency: '$',
-    },
+    theme: { ...DEFAULT_THEME, customFonts: [] },
+    themePresets: [],
     header: {
       logoText: 'Lumen & Co.',
       announcement: 'Free shipping on orders over $50',

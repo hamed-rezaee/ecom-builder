@@ -4,6 +4,8 @@ import { createBlock, registry } from '../blocks/registry';
 import { createStarterSite } from '../data/starterSite';
 import { normalizeSite } from '../export/siteJson';
 import { GLOBAL_IDS, nudgeBlocks } from '../utils/dnd';
+import { normalizeAnim } from '../utils/animation';
+import { PRESET_KEYS } from '../data/themePresets';
 import { slugify, uid } from '../utils/helpers';
 import { setSaveStatus } from './saveStatus';
 import { toast } from './toastStore';
@@ -144,6 +146,7 @@ export const useSiteStore = create(
         currentPageId: initialSite.pages[0].id,
         ...NONE,
         device: 'desktop',
+        themePreview: 'light',
         past: [],
         future: [],
         clipboard: [],
@@ -170,6 +173,7 @@ export const useSiteStore = create(
           if (ids.length) set({ selectedIds: ids, selectedId: ids.at(-1) });
         },
         setDevice: (device) => set({ device }),
+        setThemePreview: (themePreview) => set({ themePreview }),
         setCurrentPage: (id) => set({ currentPageId: id, ...NONE }),
 
         undo: () => {
@@ -330,6 +334,22 @@ export const useSiteStore = create(
           }, key);
         },
 
+        updateAnim: (id, patch) => {
+          const pageId = get().currentPageId;
+          const key = `${id}:anim:${Object.keys(patch)[0]}`;
+          commit(
+            (site) =>
+              updateBlocks(site, pageId, (blocks) =>
+                blocks.map((b) =>
+                  b.id === id
+                    ? { ...b, anim: normalizeAnim({ ...b.anim, ...patch }) }
+                    : b,
+                ),
+              ),
+            key,
+          );
+        },
+
         addPage: (name) => {
           const title = name.trim() || 'New page';
           const page = {
@@ -410,6 +430,25 @@ export const useSiteStore = create(
             (site) => ({ ...site, theme: { ...site.theme, ...patch } }),
             `theme:${Object.keys(patch)[0]}`,
           ),
+        saveThemePreset: (name) =>
+          commit((site) => ({
+            ...site,
+            themePresets: [
+              ...site.themePresets,
+              {
+                id: uid('tp'),
+                name: name.trim().slice(0, 40) || 'My theme',
+                theme: Object.fromEntries(
+                  PRESET_KEYS.map((k) => [k, site.theme[k]]),
+                ),
+              },
+            ].slice(-24),
+          })),
+        deleteThemePreset: (id) =>
+          commit((site) => ({
+            ...site,
+            themePresets: site.themePresets.filter((p) => p.id !== id),
+          })),
         updateSiteName: (name) =>
           commit((site) => ({ ...site, name }), 'siteName'),
       };

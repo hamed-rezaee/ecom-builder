@@ -103,3 +103,30 @@ describe('coalescing', () => {
     expect(store().past.length).toBe(pastBefore + 1);
   });
 });
+
+describe('animation and theme presets', () => {
+  it('updates block animation, survives duplicate, and undoes', () => {
+    const id = selectPage(store()).blocks[0].id;
+    store().updateAnim(id, { entrance: 'zoom-in', delay: 300 });
+    expect(selectPage(store()).blocks[0].anim).toMatchObject({
+      entrance: 'zoom-in',
+      delay: 300,
+    });
+    store().duplicateBlock(id);
+    expect(selectPage(store()).blocks[1].anim.entrance).toBe('zoom-in');
+    store().undo();
+    store().undo();
+    expect(selectPage(store()).blocks[0].anim).toBeUndefined();
+  });
+
+  it('saves and deletes theme presets', () => {
+    store().updateTheme({ primary: '#ff0000' });
+    store().saveThemePreset('Red');
+    const [preset] = store().site.themePresets;
+    expect(preset.name).toBe('Red');
+    expect(preset.theme.primary).toBe('#ff0000');
+    expect(preset.theme).not.toHaveProperty('currency');
+    store().deleteThemePreset(preset.id);
+    expect(store().site.themePresets).toHaveLength(0);
+  });
+});

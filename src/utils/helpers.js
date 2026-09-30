@@ -10,40 +10,12 @@ export const slugify = (text) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '') || 'page';
 
-export const FONTS = {
-  sans: {
-    label: 'Modern sans',
-    stack:
-      'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
-  },
-  serif: { label: 'Classic serif', stack: 'Georgia, "Times New Roman", serif' },
-  humanist: {
-    label: 'Humanist',
-    stack: '"Trebuchet MS", "Gill Sans", Calibri, sans-serif',
-  },
-  mono: {
-    label: 'Mono',
-    stack: 'ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace',
-  },
-};
-
 export function contrastColor(hex) {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
   if (!m) return '#ffffff';
   const n = parseInt(m[1], 16);
   const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
   return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? '#111111' : '#ffffff';
-}
-
-export function themeVars(theme) {
-  return {
-    '--eb-primary': theme.primary,
-    '--eb-on-primary': contrastColor(theme.primary),
-    '--eb-bg': theme.background,
-    '--eb-text': theme.text,
-    '--eb-radius': `${Number(theme.radius) || 0}px`,
-    '--eb-font': (FONTS[theme.font] ?? FONTS.sans).stack,
-  };
 }
 
 export function safeHref(href) {

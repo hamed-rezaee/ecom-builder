@@ -11,6 +11,10 @@
   var KEY = 'eb-cart';
   var cart = load();
   var currentRoute = '';
+  var aosReady = false;
+  var reduced =
+    !!window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function load() {
     try {
@@ -244,7 +248,65 @@
     document.title = title ? title + ' \u2013 ' + data.name : data.name;
     if (currentRoute === 'cart') renderCart();
     if (currentRoute === 'checkout') renderCheckout();
+    if (
+      match &&
+      !reduced &&
+      (data.pageTransition === 'fade' || data.pageTransition === 'slide')
+    ) {
+      match.classList.remove('eb-pt-fade', 'eb-pt-slide');
+      void match.offsetWidth;
+      match.classList.add('eb-pt-' + data.pageTransition);
+    }
+    // Routes toggle `hidden`, so AOS must re-measure positions.
+    if (aosReady) window.AOS.refreshHard();
     window.scrollTo(0, 0);
+  }
+
+  function initAnimations() {
+    if (!window.AOS || !data.anim) return;
+    window.AOS.init({
+      duration: data.anim.duration,
+      easing: data.anim.easing,
+      once: data.anim.once,
+      offset: 60,
+      disable: reduced,
+    });
+    aosReady = true;
+  }
+
+  function themeRoot() {
+    return document.querySelector('.eb-site');
+  }
+
+  function initTheme() {
+    var root = themeRoot();
+    if (!root || data.darkMode !== 'toggle') return;
+    var mode = null;
+    try {
+      mode = window.localStorage.getItem('eb-theme');
+    } catch {
+      // storage unavailable (sandboxed preview)
+    }
+    if (mode !== 'dark' && mode !== 'light') {
+      mode =
+        window.matchMedia &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light';
+    }
+    root.setAttribute('data-theme', mode);
+  }
+
+  function toggleTheme() {
+    var root = themeRoot();
+    if (!root) return;
+    var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try {
+      window.localStorage.setItem('eb-theme', next);
+    } catch {
+      // storage unavailable (sandboxed preview)
+    }
   }
 
   function go(href) {
@@ -261,6 +323,11 @@
     if (anchor) {
       e.preventDefault();
       go(anchor.getAttribute('href'));
+      return;
+    }
+
+    if (t.closest('[data-theme-toggle]')) {
+      toggleTheme();
       return;
     }
 
@@ -304,5 +371,7 @@
 
   window.addEventListener('hashchange', route);
   changed();
+  initTheme();
   route();
+  initAnimations();
 })();

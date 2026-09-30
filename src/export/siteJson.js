@@ -1,6 +1,9 @@
 import { registry } from '../blocks/registry';
+import { PRESET_KEYS } from '../data/themePresets';
 import { createStarterSite } from '../data/starterSite';
+import { normalizeAnim } from '../utils/animation';
 import { slugify, uid } from '../utils/helpers';
+import { normalizeTheme } from '../utils/theme';
 
 export const SITE_FILE_VERSION = 1;
 export const MAX_IMPORT_BYTES = 10 * 1024 * 1024;
@@ -13,11 +16,30 @@ function normalizeBlock(raw) {
   if (!isObject(raw) || !registry[raw.type] || registry[raw.type].global)
     return null;
   const defaults = structuredClone(registry[raw.type].defaults);
-  return {
+  const block = {
     id: str(raw.id, '') || uid('b'),
     type: raw.type,
     props: { ...defaults, ...(isObject(raw.props) ? raw.props : {}) },
   };
+  if (isObject(raw.anim)) block.anim = normalizeAnim(raw.anim);
+  return block;
+}
+
+function normalizePresets(raw, customFonts) {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set();
+  return raw
+    .filter((p) => isObject(p) && str(p.id, '') && isObject(p.theme))
+    .filter((p) => !seen.has(p.id) && seen.add(p.id))
+    .slice(0, 24)
+    .map((p) => {
+      const theme = normalizeTheme({ ...p.theme, customFonts });
+      return {
+        id: p.id,
+        name: str(p.name, 'Preset').slice(0, 40) || 'Preset',
+        theme: Object.fromEntries(PRESET_KEYS.map((k) => [k, theme[k]])),
+      };
+    });
 }
 
 // Returns a structurally valid site or throws an Error with a user-facing message.
@@ -63,9 +85,15 @@ export function normalizeSite(input) {
       image: str(p.image, ''),
     }));
 
+  const theme = normalizeTheme({
+    ...base.theme,
+    ...(isObject(input.theme) ? input.theme : {}),
+  });
+
   return {
     name: str(input.name, base.name),
-    theme: { ...base.theme, ...(isObject(input.theme) ? input.theme : {}) },
+    theme,
+    themePresets: normalizePresets(input.themePresets, theme.customFonts),
     header: { ...base.header, ...(isObject(input.header) ? input.header : {}) },
     footer: { ...base.footer, ...(isObject(input.footer) ? input.footer : {}) },
     products,

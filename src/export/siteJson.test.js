@@ -3,6 +3,21 @@ import { createStarterSite } from '../data/starterSite';
 import { normalizeSite, parseSiteFile, serializeSite } from './siteJson';
 
 describe('siteJson', () => {
+  it('fills the extended theme for files saved before it existed', () => {
+    const site = createStarterSite();
+    site.theme = {
+      primary: '#123456',
+      font: 'serif',
+      radius: 4,
+      currency: '$',
+    };
+    delete site.themePresets;
+    const parsed = parseSiteFile(serializeSite(site));
+    expect(parsed.theme.primary).toBe('#123456');
+    expect(parsed.theme.darkMode).toBe('off');
+    expect(parsed.themePresets).toEqual([]);
+  });
+
   it('round-trips the starter site', () => {
     const site = createStarterSite();
     const parsed = parseSiteFile(serializeSite(site));

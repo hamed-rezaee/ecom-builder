@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from 'react'
 import { ImagePlus, Trash2 } from 'lucide-react'
+import { GOOGLE_FONTS, SYSTEM_FONTS } from '../../data/fonts'
 import { safeSrc } from '../../utils/helpers'
 import { readImageFile } from '../../utils/image'
 import { toast } from '../../store/toastStore'
@@ -74,6 +75,24 @@ export function NumberInput({ label, value, onChange, min, max, step = 1 }) {
   )
 }
 
+export function RangeInput({ label, value, onChange, min, max, step = 1, unit = '' }) {
+  const id = useId()
+  return (
+    <Field label={`${label}: ${value}${unit}`} htmlFor={id}>
+      <input
+        id={id}
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full accent-indigo-600"
+      />
+    </Field>
+  )
+}
+
 export function SelectInput({ label, value, onChange, options }) {
   const id = useId()
   return (
@@ -111,6 +130,68 @@ export function ColorInput({ label, value, onChange }) {
         />
         <span className="font-mono text-xs uppercase text-slate-500">{value}</span>
       </div>
+    </Field>
+  )
+}
+
+// A color that falls back to an automatic value while empty.
+export function OptionalColor({ label, value, fallback, onChange }) {
+  if (!value) {
+    return (
+      <Field label={label}>
+        <div className="flex items-center justify-between gap-2 text-xs text-slate-500">
+          <span>Automatic</span>
+          <button
+            type="button"
+            onClick={() => onChange(fallback)}
+            className="rounded-md border border-slate-300 bg-white px-2 py-1 font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Customize
+          </button>
+        </div>
+      </Field>
+    )
+  }
+  return (
+    <div className="space-y-1">
+      <ColorInput label={label} value={value} onChange={onChange} />
+      <button type="button" onClick={() => onChange('')} className="text-xs text-slate-500 hover:underline">
+        Use automatic
+      </button>
+    </div>
+  )
+}
+
+export function FontInput({ label, value, onChange, customFonts = [], inheritLabel }) {
+  const id = useId()
+  return (
+    <Field label={label} htmlFor={id}>
+      <select id={id} className={inputCls} value={value} onChange={(e) => onChange(e.target.value)}>
+        {inheritLabel && <option value="">{inheritLabel}</option>}
+        {customFonts.length > 0 && (
+          <optgroup label="Uploaded">
+            {customFonts.map((f) => (
+              <option key={f.id} value={`u:${f.id}`}>
+                {f.name}
+              </option>
+            ))}
+          </optgroup>
+        )}
+        <optgroup label="Google Fonts">
+          {GOOGLE_FONTS.map((f) => (
+            <option key={f.name} value={`g:${f.name}`}>
+              {f.name}
+            </option>
+          ))}
+        </optgroup>
+        <optgroup label="System">
+          {Object.entries(SYSTEM_FONTS).map(([key, f]) => (
+            <option key={key} value={key}>
+              {f.label}
+            </option>
+          ))}
+        </optgroup>
+      </select>
     </Field>
   )
 }

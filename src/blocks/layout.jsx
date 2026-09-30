@@ -1,7 +1,7 @@
-import { ShoppingBag } from 'lucide-react'
+import { Moon, ShoppingBag, Sun } from 'lucide-react'
 import { safeHref } from '../utils/helpers'
 
-export function Header({ props: p }) {
+export function Header({ props: p, site }) {
   return (
     <>
       {p.announcement && <div className="eb-announce">{p.announcement}</div>}
@@ -16,6 +16,17 @@ export function Header({ props: p }) {
                 {l.label}
               </a>
             ))}
+            {site?.theme?.darkMode === 'toggle' && (
+              <button
+                type="button"
+                className="eb-theme-toggle"
+                data-theme-toggle
+                aria-label="Toggle dark mode"
+              >
+                <Moon className="eb-theme-moon" size={18} aria-hidden="true" />
+                <Sun className="eb-theme-sun" size={18} aria-hidden="true" />
+              </button>
+            )}
             {p.showCart && (
               <a className="eb-cart-link" href="#/cart" aria-label="Cart">
                 <ShoppingBag size={20} aria-hidden="true" />

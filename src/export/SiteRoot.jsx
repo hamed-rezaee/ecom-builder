@@ -1,6 +1,7 @@
 import { registry } from '../blocks/registry'
 import { CartView, CheckoutView, ProductDetail } from '../blocks/commerce'
-import { pageRoute, themeVars } from '../utils/helpers'
+import { pageRoute } from '../utils/helpers'
+import { animAttrs } from '../utils/animation'
 
 function Route({ route, title, hidden = true, children }) {
   return (
@@ -14,14 +15,21 @@ export default function SiteRoot({ site }) {
   const HeaderBlock = registry.header.Component
   const FooterBlock = registry.footer.Component
   return (
-    <div className="eb-site" style={themeVars(site.theme)}>
+    <div className="eb-site">
       <HeaderBlock props={site.header} site={site} />
       <main>
         {site.pages.map((page) => (
           <Route key={page.id} route={pageRoute(page)} title={page.name} hidden={!page.isHome}>
             {page.blocks.map((block) => {
               const Block = registry[block.type]?.Component
-              return Block ? <Block key={block.id} props={block.props} site={site} /> : null
+              if (!Block) return null
+              const attrs = animAttrs(block.anim, site.theme)
+              if (!attrs) return <Block key={block.id} props={block.props} site={site} />
+              return (
+                <div key={block.id} {...attrs}>
+                  <Block props={block.props} site={site} />
+                </div>
+              )
             })}
           </Route>
         ))}

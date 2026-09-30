@@ -2,7 +2,53 @@ import { Copy, Layers, MousePointerClick, Trash2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { registry } from '../blocks/registry'
 import { selectPage, useSiteStore } from '../store/useSiteStore'
+import { ENTRANCES, HOVERS, normalizeAnim } from '../utils/animation'
 import FieldRenderer from './FieldRenderer'
+import { RangeInput, SelectInput } from './ui/Field'
+
+const withInherit = (list) => [['inherit', 'Site default'], ...list]
+
+function AnimationSection({ block }) {
+  const updateAnim = useSiteStore((s) => s.updateAnim)
+  const anim = normalizeAnim(block.anim)
+  const set = (patch) => updateAnim(block.id, patch)
+  return (
+    <div className="space-y-4 border-t border-slate-200 pt-4">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Animation</h3>
+      <SelectInput
+        label="Scroll entrance"
+        value={anim.entrance}
+        options={withInherit(ENTRANCES)}
+        onChange={(v) => set({ entrance: v })}
+      />
+      <SelectInput
+        label="Hover effect"
+        value={anim.hover}
+        options={withInherit(HOVERS)}
+        onChange={(v) => set({ hover: v })}
+      />
+      <RangeInput
+        label="Delay"
+        unit="ms"
+        value={anim.delay}
+        min={0}
+        max={2000}
+        step={50}
+        onChange={(v) => set({ delay: v })}
+      />
+      <RangeInput
+        label="Duration (0 = site default)"
+        unit="ms"
+        value={anim.duration}
+        min={0}
+        max={3000}
+        step={100}
+        onChange={(v) => set({ duration: v })}
+      />
+      <p className="text-xs text-slate-500">Animations play in Preview and the exported site.</p>
+    </div>
+  )
+}
 
 function EmptyState() {
   return (
@@ -109,6 +155,7 @@ export default function Inspector() {
                 onChange={(v) => updateProps(selectedId, { [field.key]: v })}
               />
             ))}
+            {block && <AnimationSection key={block.id} block={block} />}
           </div>
         </motion.div>
       )}
