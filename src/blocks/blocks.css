@@ -190,9 +190,18 @@
 .eb-faq details { border-bottom: 1px solid var(--eb-border); padding: 16px 0; }
 .eb-faq summary { display: flex; justify-content: space-between; gap: 16px; cursor: pointer; font-weight: 600; list-style: none; }
 .eb-faq summary::-webkit-details-marker { display: none; }
-.eb-faq summary::after { content: '+'; font-size: 1.25rem; line-height: 1; }
-.eb-faq details[open] summary::after { content: '\2013'; }
+.eb-faq summary::after { content: '+'; font-size: 1.25rem; line-height: 1; transition: transform 0.25s ease; }
+.eb-faq details[open] summary::after { transform: rotate(135deg); }
 .eb-faq p { margin-top: 8px; color: var(--eb-muted); white-space: pre-line; }
+/* Height animation needs ::details-content (Chromium 131+); other browsers open instantly. */
+.eb-faq details { interpolate-size: allow-keywords; }
+.eb-faq details::details-content {
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: height 0.3s ease, opacity 0.3s ease, content-visibility 0.3s allow-discrete;
+}
+.eb-faq details[open]::details-content { height: auto; opacity: 1; }
 
 /* Newsletter + forms */
 .eb-newsletter { background: var(--eb-surface); }
@@ -293,6 +302,7 @@ html.eb-smooth { scroll-behavior: smooth; }
   html.eb-smooth { scroll-behavior: auto; }
   .eb-pt-fade, .eb-pt-slide { animation: none; }
   .eb-hero-grid, .eb-hero-grid::before, .eb-hero-grid::after { animation: none; }
+  .eb-faq summary::after, .eb-faq details::details-content { transition: none; }
   .eb-hover-lift :is(.eb-card, .eb-quote, .eb-feature, .eb-btn, .eb-split img):hover,
   .eb-hover-scale :is(.eb-card, .eb-quote, .eb-feature, .eb-btn, .eb-split img):hover { transform: none; }
 }
