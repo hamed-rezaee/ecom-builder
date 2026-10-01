@@ -17,9 +17,10 @@ import {
 } from 'lucide-react'
 import { useSaveStatus } from '../store/saveStatus'
 import { MAX_IMPORT_BYTES, downloadSiteJson, parseSiteFile } from '../export/siteJson'
-import { selectPage, useSiteStore } from '../store/useSiteStore'
+import { selectPage, selectViewLocale, useSiteStore } from '../store/useSiteStore'
 import { toast } from '../store/toastStore'
 import { cn } from '../utils/helpers'
+import { localeName } from '../utils/i18n'
 
 const DEVICES = [
   { id: 'desktop', label: 'Desktop', icon: Monitor },
@@ -68,7 +69,8 @@ export default function TopBar({ onPreview, onHelp }) {
   const device = useSiteStore((s) => s.device)
   const canUndo = useSiteStore((s) => s.past.length > 0)
   const canRedo = useSiteStore((s) => s.future.length > 0)
-  const { setDevice, setCurrentPage, undo, redo, updateSiteName } = useSiteStore()
+  const { setDevice, setCurrentPage, undo, redo, updateSiteName, setViewLocale } = useSiteStore()
+  const viewLocale = useSiteStore(selectViewLocale)
   const [exporting, setExporting] = useState(false)
   const fileRef = useRef(null)
 
@@ -129,6 +131,21 @@ export default function TopBar({ onPreview, onHelp }) {
           </option>
         ))}
       </select>
+
+      {site.locales.enabled.length > 0 && (
+        <select
+          aria-label="Language"
+          value={viewLocale || site.locales.default}
+          onChange={(e) => setViewLocale(e.target.value === site.locales.default ? '' : e.target.value)}
+          className="rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 focus:border-indigo-500 focus:outline-none"
+        >
+          {[site.locales.default, ...site.locales.enabled].map((code) => (
+            <option key={code} value={code}>
+              {localeName(code)}
+            </option>
+          ))}
+        </select>
+      )}
 
       <div className="mx-auto flex items-center gap-1">
         {DEVICES.map(({ id, label, icon: Icon }) => (

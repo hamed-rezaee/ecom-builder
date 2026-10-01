@@ -7,6 +7,7 @@ import { GLOBAL_IDS, nudgeBlocks } from '../utils/dnd';
 import { normalizeAnim } from '../utils/animation';
 import { PRESET_KEYS } from '../data/themePresets';
 import { slugify, uid } from '../utils/helpers';
+import { normalizeLocales, normalizeTranslations } from '../utils/i18n';
 import { setSaveStatus } from './saveStatus';
 import { toast } from './toastStore';
 
@@ -147,6 +148,7 @@ export const useSiteStore = create(
         ...NONE,
         device: 'desktop',
         themePreview: 'light',
+        viewLocale: '',
         past: [],
         future: [],
         clipboard: [],
@@ -174,6 +176,7 @@ export const useSiteStore = create(
         },
         setDevice: (device) => set({ device }),
         setThemePreview: (themePreview) => set({ themePreview }),
+        setViewLocale: (viewLocale) => set({ viewLocale }),
         setCurrentPage: (id) => set({ currentPageId: id, ...NONE }),
 
         undo: () => {
@@ -430,6 +433,26 @@ export const useSiteStore = create(
             (site) => ({ ...site, theme: { ...site.theme, ...patch } }),
             `theme:${Object.keys(patch)[0]}`,
           ),
+        updateLocales: (patch) =>
+          commit((site) => {
+            const locales = normalizeLocales({ ...site.locales, ...patch });
+            return {
+              ...site,
+              locales,
+              translations: normalizeTranslations(site.translations, locales),
+            };
+          }),
+        setTranslation: (locale, key, text) =>
+          commit(
+            (site) => ({
+              ...site,
+              translations: {
+                ...site.translations,
+                [locale]: { ...site.translations?.[locale], [key]: text },
+              },
+            }),
+            `tr:${locale}:${key}`,
+          ),
         saveThemePreset: (name) =>
           commit((site) => ({
             ...site,
@@ -479,3 +502,7 @@ export const useSiteStore = create(
 
 export const selectPage = (s) =>
   s.site.pages.find((p) => s.currentPageId === p.id) ?? s.site.pages[0];
+
+// '' means the default language.
+export const selectViewLocale = (s) =>
+  s.site.locales.enabled.includes(s.viewLocale) ? s.viewLocale : '';

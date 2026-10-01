@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { placeholderImage, safeHref, safeSrc } from '../utils/helpers'
+import { ui } from '../utils/i18n'
 import { GRID_STYLES, IMAGE_SHAPES, IMAGE_SIZES, oneOf, safeHex } from '../utils/wireShapes'
 
 export function Hero({ props: p }) {
@@ -129,12 +130,18 @@ export function Testimonials({ props: p }) {
       <div className="eb-container">
         {p.heading && <h2 className="eb-heading eb-center">{p.heading}</h2>}
         <div className="eb-quotes">
-          {(p.items ?? []).map((item, i) => (
-            <figure className="eb-quote" key={i}>
-              <blockquote>&ldquo;{item.quote}&rdquo;</blockquote>
-              <cite>{item.author}</cite>
-            </figure>
-          ))}
+          {(p.items ?? []).map((item, i) => {
+            const photo = safeSrc(item.image)
+            return (
+              <figure className="eb-quote" key={i}>
+                <blockquote>&ldquo;{item.quote}&rdquo;</blockquote>
+                <figcaption className="eb-quote-by">
+                  {photo && <img className="eb-quote-img" src={photo} alt="" loading="lazy" />}
+                  <cite>{item.author}</cite>
+                </figcaption>
+              </figure>
+            )
+          })}
         </div>
       </div>
     </section>
@@ -159,7 +166,7 @@ export function Faq({ props: p }) {
   )
 }
 
-export function Newsletter({ props: p }) {
+export function Newsletter({ props: p, site }) {
   return (
     <section className="eb-section eb-newsletter">
       <div className="eb-container eb-center">
@@ -171,7 +178,7 @@ export function Newsletter({ props: p }) {
             type="email"
             required
             placeholder="you@example.com"
-            aria-label="Email address"
+            aria-label={ui(site, 'emailAddress')}
           />
           <button className="eb-btn" type="submit">
             {p.buttonText}

@@ -7,6 +7,7 @@ import {
   uploadedFamily,
 } from '../data/fonts';
 import { EASINGS, ENTRANCES, HOVERS, PAGE_TRANSITIONS } from './animation';
+import { normalizeCurrencies, normalizeCurrencyCode } from './currency';
 import { contrastColor } from './helpers';
 
 export const MAX_CUSTOM_FONTS = 3;
@@ -43,7 +44,8 @@ export const DEFAULT_THEME = {
   darkBackground: '#0f172a',
   darkText: '#f1f5f9',
   darkPrimary: '#818cf8',
-  currency: '$',
+  currency: 'USD',
+  currencies: [],
   customFonts: [],
 };
 
@@ -115,6 +117,7 @@ export function normalizeTheme(raw) {
   };
   const d = DEFAULT_THEME;
   const customFonts = normalizeCustomFonts(t.customFonts);
+  const currency = normalizeCurrencyCode(t.currency, d.currency);
   return {
     primary: color(t.primary, d.primary),
     secondary: color(t.secondary, ''),
@@ -150,8 +153,8 @@ export function normalizeTheme(raw) {
     darkBackground: color(t.darkBackground, d.darkBackground),
     darkText: color(t.darkText, d.darkText),
     darkPrimary: color(t.darkPrimary, d.darkPrimary),
-    currency:
-      typeof t.currency === 'string' ? t.currency.slice(0, 3) : d.currency,
+    currency,
+    currencies: normalizeCurrencies(t.currencies, currency),
     customFonts,
   };
 }

@@ -253,8 +253,16 @@ export const registry = {
     defaults: {
       heading: 'What customers say',
       items: [
-        { quote: 'Great quality and fast delivery.', author: 'Alex P.' },
-        { quote: 'Exactly what I was looking for.', author: 'Sam R.' },
+        {
+          quote: 'Great quality and fast delivery.',
+          author: 'Alex P.',
+          image: '',
+        },
+        {
+          quote: 'Exactly what I was looking for.',
+          author: 'Sam R.',
+          image: '',
+        },
       ],
     },
     fields: [
@@ -264,8 +272,17 @@ export const registry = {
         label: 'Testimonials',
         type: 'list',
         itemLabel: 'Testimonial',
-        newItem: { quote: 'Loved it!', author: 'Customer' },
-        itemFields: [area('quote', 'Quote'), text('author', 'Author')],
+        newItem: { quote: 'Loved it!', author: 'Customer', image: '' },
+        itemFields: [
+          area('quote', 'Quote'),
+          text('author', 'Author'),
+          {
+            key: 'image',
+            label: 'Photo (optional)',
+            type: 'image',
+            maxSize: 240,
+          },
+        ],
       },
     ],
   },
@@ -511,6 +528,8 @@ export const registry = {
     Component: Stats,
     defaults: {
       heading: '',
+      countUp: true,
+      countDuration: 1600,
       items: [
         { value: '10k+', label: 'Happy customers' },
         { value: '4.9', label: 'Average rating' },
@@ -519,6 +538,19 @@ export const registry = {
     },
     fields: [
       text('heading', 'Heading'),
+      {
+        key: 'countUp',
+        label: 'Count up numbers when scrolled into view',
+        type: 'toggle',
+      },
+      {
+        key: 'countDuration',
+        label: 'Count duration (ms)',
+        type: 'range',
+        min: 300,
+        max: 4000,
+        step: 100,
+      },
       {
         key: 'items',
         label: 'Stats',
@@ -620,6 +652,11 @@ export const registry = {
       text('logoText', 'Logo text'),
       text('announcement', 'Announcement bar (optional)'),
       { key: 'showCart', label: 'Show cart icon', type: 'toggle' },
+      {
+        key: 'showLanguage',
+        label: 'Show language selector (needs extra languages)',
+        type: 'toggle',
+      },
       { key: 'sticky', label: 'Stick to top when scrolling', type: 'toggle' },
       {
         key: 'links',

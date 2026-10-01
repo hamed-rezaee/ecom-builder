@@ -5,10 +5,12 @@ import { useSiteStore } from '../../store/useSiteStore'
 import { toast } from '../../store/toastStore'
 import { EASINGS, ENTRANCES, HOVERS, PAGE_TRANSITIONS } from '../../utils/animation'
 import { readFontFile } from '../../utils/font'
+import { CURRENCIES, MAX_CURRENCIES } from '../../utils/currency'
 import { DEFAULT_THEME, MAX_CUSTOM_FONTS } from '../../utils/theme'
 import {
   ColorInput,
   FontInput,
+  NumberInput,
   OptionalColor,
   RangeInput,
   SelectInput,
@@ -397,12 +399,53 @@ export default function ThemePanel() {
       </Section>
 
       <Section title="Store">
-        <TextInput
-          label="Currency symbol"
+        <SelectInput
+          label="Base currency (product prices)"
           value={theme.currency}
-          maxLength={3}
+          options={CURRENCIES.map(([code, name]) => [code, `${code} - ${name}`])}
           onChange={(v) => updateTheme({ currency: v })}
         />
+        <p className="text-xs text-slate-500">
+          Extra currencies appear in a header switcher. Rate = units of that currency per 1 {theme.currency}.
+        </p>
+        {theme.currencies.map((c) => (
+          <div key={c.code} className="flex items-end gap-2">
+            <div className="flex-1">
+              <NumberInput
+                label={c.code}
+                value={c.rate}
+                min={0.000001}
+                step={0.01}
+                onChange={(rate) =>
+                  updateTheme({
+                    currencies: theme.currencies.map((x) => (x.code === c.code ? { ...x, rate } : x)),
+                  })
+                }
+              />
+            </div>
+            <button
+              type="button"
+              aria-label={`Remove ${c.code}`}
+              className="rounded p-2 text-slate-500 hover:bg-slate-200 hover:text-red-600"
+              onClick={() => updateTheme({ currencies: theme.currencies.filter((x) => x.code !== c.code) })}
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        ))}
+        {theme.currencies.length < MAX_CURRENCIES && (
+          <SelectInput
+            label="Add currency"
+            value=""
+            options={[
+              ['', 'Choose...'],
+              ...CURRENCIES.filter(([code]) => code !== theme.currency && !theme.currencies.some((c) => c.code === code)).map(
+                ([code, name]) => [code, `${code} - ${name}`],
+              ),
+            ]}
+            onChange={(code) => code && updateTheme({ currencies: [...theme.currencies, { code, rate: 1 }] })}
+          />
+        )}
       </Section>
 
       <div className="pt-2">

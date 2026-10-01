@@ -5,6 +5,8 @@ import {
   safeSrc,
   videoEmbedUrl,
 } from '../utils/helpers'
+import { parseCounter } from '../utils/counter'
+import { ui } from '../utils/i18n'
 import {
   CTA_TONES,
   DIVIDER_STYLES,
@@ -96,17 +98,34 @@ export function CallToAction({ props: p }) {
 }
 
 export function Stats({ props: p }) {
+  const count = p.countUp !== false
+  const duration = Math.min(4000, Math.max(300, Number(p.countDuration) || 1600))
   return (
     <section className="eb-section">
       <div className="eb-container">
         <Heading p={p} />
         <div className="eb-stats">
-          {(p.items ?? []).map((item, i) => (
-            <div className="eb-stat" key={i}>
-              <div className="eb-stat-value">{item.value}</div>
-              <div className="eb-stat-label">{item.label}</div>
-            </div>
-          ))}
+          {(p.items ?? []).map((item, i) => {
+            const c = count ? parseCounter(item.value) : null
+            return (
+              <div className="eb-stat" key={i}>
+                <div
+                  className="eb-stat-value"
+                  {...(c && {
+                    'data-count-to': c.to,
+                    'data-count-decimals': c.decimals,
+                    'data-count-group': c.group ? '1' : undefined,
+                    'data-count-prefix': c.prefix,
+                    'data-count-suffix': c.suffix,
+                    'data-count-duration': duration,
+                  })}
+                >
+                  {item.value}
+                </div>
+                <div className="eb-stat-label">{item.label}</div>
+              </div>
+            )
+          })}
         </div>
       </div>
     </section>
@@ -171,26 +190,26 @@ export function LogoCloud({ props: p }) {
   )
 }
 
-export function ContactForm({ props: p }) {
+export function ContactForm({ props: p, site }) {
   return (
     <section className="eb-section">
       <div className="eb-container">
         <Heading p={p} sub="text" />
         <form className="eb-form eb-contact" data-contact>
           <label>
-            Name
+            {ui(site, 'name')}
             <input className="eb-input" name="name" type="text" required autoComplete="name" />
           </label>
           <label>
-            Email
+            {ui(site, 'email')}
             <input className="eb-input" name="email" type="email" required autoComplete="email" />
           </label>
           <label>
-            Message
+            {ui(site, 'message')}
             <textarea className="eb-input" name="message" rows={5} required />
           </label>
           <button className="eb-btn" type="submit">
-            {p.buttonText || 'Send message'}
+            {p.buttonText || ui(site, 'sendMessage')}
           </button>
         </form>
       </div>

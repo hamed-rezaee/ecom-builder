@@ -1,3 +1,5 @@
+import { formatMoney } from './currency';
+
 export const uid = (prefix = 'id') =>
   `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
 
@@ -85,8 +87,7 @@ export function placeholderImage(seed = '') {
 export const productImage = (product) =>
   safeSrc(product.image) || placeholderImage(product.name);
 
-export const formatPrice = (price, currency = '$') =>
-  `${currency}${(Number(price) || 0).toFixed(2)}`;
+export const formatPrice = formatMoney;
 
 export const pageHref = (page) => (page.isHome ? '#/' : `#/p/${page.slug}`);
 

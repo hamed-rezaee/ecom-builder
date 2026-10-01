@@ -1,4 +1,5 @@
 import { formatPrice, productImage } from '../utils/helpers'
+import { ui } from '../utils/i18n'
 
 // Hidden until the runtime finds this product in the cart.
 function InCartBadge({ id }) {
@@ -19,14 +20,16 @@ export function ProductCard({ product, site, buttonText, showInCart = true, hidd
         <a className="eb-card-title" href={href}>
           {product.name}
         </a>
-        <span className="eb-price">{formatPrice(product.price, site.theme.currency)}</span>
+        <span className="eb-price" data-price={Number(product.price) || 0}>
+          {formatPrice(product.price, site.theme.currency, site.locale)}
+        </span>
         <div className="eb-card-actions">
           <button
             type="button"
             className="eb-btn eb-btn-sm"
             data-add-to-cart={product.id}
           >
-            {buttonText || 'Add to cart'}
+            {buttonText || ui(site, 'addToCart')}
           </button>
         </div>
       </div>
@@ -73,7 +76,7 @@ export function ProductGrid({ props: p, site }) {
                 />
               ))}
             </div>
-            {paged && <Pager style={style} pageCount={pageCount} />}
+            {paged && <Pager style={style} pageCount={pageCount} site={site} />}
           </div>
         ) : (
           <p className="eb-empty">No products yet. Add some in the Products tab.</p>
@@ -83,12 +86,12 @@ export function ProductGrid({ props: p, site }) {
   )
 }
 
-function Pager({ style, pageCount }) {
+function Pager({ style, pageCount, site }) {
   if (style === 'loadmore') {
     return (
       <div className="eb-pager">
         <button type="button" className="eb-btn eb-btn-outline" data-pager-go="more">
-          Load more
+          {ui(site, 'loadMore')}
         </button>
       </div>
     )
@@ -96,7 +99,7 @@ function Pager({ style, pageCount }) {
   return (
     <nav className="eb-pager" aria-label="Product pages">
       <button type="button" className="eb-page-btn" data-pager-go="prev" disabled>
-        Previous
+        {ui(site, 'previous')}
       </button>
       {Array.from({ length: pageCount }, (_, i) => (
         <button
@@ -111,7 +114,7 @@ function Pager({ style, pageCount }) {
         </button>
       ))}
       <button type="button" className="eb-page-btn" data-pager-go="next">
-        Next
+        {ui(site, 'next')}
       </button>
     </nav>
   )
@@ -133,17 +136,17 @@ export function FeaturedProduct({ props: p, site }) {
         <div>
           {p.label && <div className="eb-eyebrow">{p.label}</div>}
           <h2 className="eb-heading">{product.name}</h2>
-          <p className="eb-price" style={{ fontSize: '1.4rem', marginTop: 8 }}>
-            {formatPrice(product.price, site.theme.currency)}
+          <p className="eb-price" data-price={Number(product.price) || 0} style={{ fontSize: '1.4rem', marginTop: 8 }}>
+            {formatPrice(product.price, site.theme.currency, site.locale)}
           </p>
           <InCartBadge id={product.id} />
           {product.description && <p className="eb-text">{product.description}</p>}
           <div className="eb-actions">
             <button type="button" className="eb-btn" data-add-to-cart={product.id}>
-              Add to cart
+              {ui(site, 'addToCart')}
             </button>
             <a className="eb-btn eb-btn-outline" href={`#/product/${product.id}`}>
-              View details
+              {ui(site, 'viewDetails')}
             </a>
           </div>
         </div>
@@ -157,21 +160,23 @@ export function ProductDetail({ product, site }) {
     <div className="eb-page">
       <div className="eb-container">
         <a className="eb-back" href="#/">
-          &larr; Continue shopping
+          &larr; {ui(site, 'continueShopping')}
         </a>
         <div className="eb-detail">
           <img src={productImage(product)} alt={product.name} />
           <div>
             <h1>{product.name}</h1>
-            <span className="eb-price">{formatPrice(product.price, site.theme.currency)}</span>
+            <span className="eb-price" data-price={Number(product.price) || 0}>
+              {formatPrice(product.price, site.theme.currency, site.locale)}
+            </span>
             <InCartBadge id={product.id} />
             {product.description && <p className="eb-text" style={{ marginTop: 0 }}>{product.description}</p>}
             <div className="eb-actions">
               <button type="button" className="eb-btn" data-add-to-cart={product.id}>
-                Add to cart
+                {ui(site, 'addToCart')}
               </button>
               <a className="eb-btn eb-btn-outline" href="#/cart">
-                View cart
+                {ui(site, 'viewCart')}
               </a>
             </div>
           </div>
@@ -181,22 +186,22 @@ export function ProductDetail({ product, site }) {
   )
 }
 
-export function CartView() {
+export function CartView({ site }) {
   return (
     <div className="eb-page">
       <div className="eb-container">
-        <h1 className="eb-heading">Your cart</h1>
+        <h1 className="eb-heading">{ui(site, 'yourCart')}</h1>
         <div data-cart-view />
       </div>
     </div>
   )
 }
 
-export function CheckoutView() {
+export function CheckoutView({ site }) {
   return (
     <div className="eb-page">
       <div className="eb-container">
-        <h1 className="eb-heading">Checkout</h1>
+        <h1 className="eb-heading">{ui(site, 'checkout')}</h1>
         <div data-checkout-view />
       </div>
     </div>

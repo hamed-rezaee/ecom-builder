@@ -1,14 +1,20 @@
 import JSZip from 'jszip';
-import { buildSite } from './buildSite';
+import { buildSite, localePath } from './buildSite';
 import { slugify } from '../utils/helpers';
+import { normalizeLocales } from '../utils/i18n';
 
 export async function exportSiteZip(site) {
-  const { html, css, js, files } = buildSite(site);
+  const locales = normalizeLocales(site.locales);
   const zip = new JSZip();
-  zip.file('index.html', html);
-  zip.file('site.css', css);
-  zip.file('site.js', js);
-  for (const f of files) zip.file(f.path, f.base64, { base64: true });
+  let shared;
+  for (const code of [locales.default, ...locales.enabled]) {
+    const build = buildSite(site, { locale: code });
+    zip.file(`${localePath(code, locales)}index.html`, build.html);
+    shared ??= build;
+  }
+  zip.file('site.css', shared.css);
+  zip.file('site.js', shared.js);
+  for (const f of shared.files) zip.file(f.path, f.base64, { base64: true });
   const blob = await zip.generateAsync({ type: 'blob' });
 
   const url = URL.createObjectURL(blob);

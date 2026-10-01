@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ExternalLink, Monitor, Smartphone, Tablet, X } from 'lucide-react'
 import { buildSite } from '../export/buildSite'
-import { useSiteStore } from '../store/useSiteStore'
+import { selectViewLocale, useSiteStore } from '../store/useSiteStore'
 import { cn } from '../utils/helpers'
+import { localeName } from '../utils/i18n'
 
 const DEVICES = [
   { id: 'mobile', label: 'Mobile', icon: Smartphone, width: 390 },
@@ -14,8 +15,21 @@ const DEVICES = [
 export default function PreviewModal({ onClose }) {
   const site = useSiteStore((s) => s.site)
   const [device, setDevice] = useState('desktop')
-  const html = useMemo(() => buildSite(site, { inline: true }).html, [site])
+  const frameRef = useRef(null)
+  const viewLocale = useSiteStore(selectViewLocale)
+  const [picked, setPicked] = useState(viewLocale || site.locales.default)
+  const locale = picked === site.locales.default || site.locales.enabled.includes(picked) ? picked : site.locales.default
+  const html = useMemo(() => buildSite(site, { inline: true, locale }).html, [site, locale])
   const width = DEVICES.find((d) => d.id === device).width
+
+  useEffect(() => {
+    const onMessage = (e) => {
+      if (e.source !== frameRef.current?.contentWindow || e.data?.type !== 'eb-lang') return
+      setPicked(String(e.data.code))
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [])
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
@@ -57,6 +71,20 @@ export default function PreviewModal({ onClose }) {
             </button>
           ))}
         </div>
+        {site.locales.enabled.length > 0 && (
+          <select
+            aria-label="Preview language"
+            value={locale}
+            onChange={(e) => setPicked(e.target.value)}
+            className="rounded-md bg-white/10 px-2 py-1.5 text-sm text-white"
+          >
+            {[site.locales.default, ...site.locales.enabled].map((code) => (
+              <option key={code} value={code} className="text-slate-900">
+                {localeName(code)}
+              </option>
+            ))}
+          </select>
+        )}
         <button
           type="button"
           onClick={openInTab}
@@ -80,6 +108,7 @@ export default function PreviewModal({ onClose }) {
         className="flex min-h-0 flex-1 justify-center overflow-auto p-4"
       >
         <iframe
+          ref={frameRef}
           title="Site preview"
           srcDoc={html}
           sandbox="allow-scripts allow-forms"

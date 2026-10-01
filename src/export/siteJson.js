@@ -3,6 +3,7 @@ import { PRESET_KEYS } from '../data/themePresets';
 import { createStarterSite } from '../data/starterSite';
 import { normalizeAnim } from '../utils/animation';
 import { slugify, uid } from '../utils/helpers';
+import { normalizeLocales, normalizeTranslations } from '../utils/i18n';
 import { normalizeTheme } from '../utils/theme';
 
 export const SITE_FILE_VERSION = 1;
@@ -104,10 +105,14 @@ export function normalizeSite(input) {
     ...(isObject(input.theme) ? input.theme : {}),
   });
 
+  const locales = normalizeLocales(input.locales);
+
   return {
     name: str(input.name, base.name),
     theme,
     themePresets: normalizePresets(input.themePresets, theme.customFonts),
+    locales,
+    translations: normalizeTranslations(input.translations, locales),
     header: { ...base.header, ...(isObject(input.header) ? input.header : {}) },
     footer: { ...base.footer, ...(isObject(input.footer) ? input.footer : {}) },
     products,

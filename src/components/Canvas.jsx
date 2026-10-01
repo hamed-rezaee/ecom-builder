@@ -6,9 +6,11 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowDown, ArrowUp, Copy, GripVertical, Plus, Trash2, TriangleAlert } from 'lucide-react'
 import '../blocks/blocks.css'
 import { registry } from '../blocks/registry'
-import { selectPage, useSiteStore } from '../store/useSiteStore'
+import { selectPage, selectViewLocale, useSiteStore } from '../store/useSiteStore'
 import { END_ID } from '../utils/dnd'
 import { cn } from '../utils/helpers'
+import { localeName } from '../utils/i18n'
+import { localizeSite } from '../utils/translate'
 import ErrorBoundary from './ErrorBoundary'
 import ThemeStyle from './ThemeStyle'
 
@@ -72,10 +74,10 @@ function ToolbarButton({ label, onClick, disabled, danger, children }) {
   )
 }
 
-function CanvasBlock({ block, index, total, selected, multi, dragging, layoutEnabled, line }) {
+function CanvasBlock({ block, viewBlock, viewSite, index, total, selected, multi, dragging, layoutEnabled, line }) {
   const { select, toggleSelect, selectRange, moveBlock, duplicateBlock, removeBlock } =
     useSiteStore.getState()
-  const site = useSiteStore((s) => s.site)
+  const site = viewSite
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
     useSortable({ id: block.id, data: { kind: 'block' } })
   const { label, Component } = registry[block.type]
@@ -166,7 +168,7 @@ function CanvasBlock({ block, index, total, selected, multi, dragging, layoutEna
           resetKey={block.props}
           fallback={() => <BlockCrash label={label} onRemove={() => removeBlock(block.id)} />}
         >
-          <Component props={block.props} site={site} />
+          <Component props={viewBlock.props} site={site} />
         </ErrorBoundary>
       </div>
     </div>
@@ -174,8 +176,8 @@ function CanvasBlock({ block, index, total, selected, multi, dragging, layoutEna
   )
 }
 
-function GlobalBlock({ id, selected }) {
-  const site = useSiteStore((s) => s.site)
+function GlobalBlock({ id, selected, viewSite }) {
+  const site = viewSite
   const select = useSiteStore((s) => s.select)
   const { setNodeRef } = useDroppable({ id })
   const { label, Component } = registry[id]
@@ -228,6 +230,13 @@ export default function Canvas({ dropIndex, dragKind, layoutEnabled }) {
   const selectedIds = useSiteStore((s) => s.selectedIds)
   const announcement = useSiteStore((s) => s.announcement)
   const select = useSiteStore((s) => s.select)
+  const viewLocale = useSiteStore(selectViewLocale)
+  // Translations are read-only on the canvas; edit them in the Languages tab.
+  const viewSite = useMemo(
+    () => (viewLocale ? { ...localizeSite(site, viewLocale), locale: viewLocale } : site),
+    [site, viewLocale],
+  )
+  const viewPage = viewSite.pages.find((p) => p.id === page.id) ?? viewSite.pages[0]
   const { setNodeRef: setEndRef, isOver } = useDroppable({ id: END_ID })
   const blockIds = useMemo(() => page.blocks.map((b) => b.id), [page.blocks])
   const empty = page.blocks.length === 0
@@ -243,13 +252,18 @@ export default function Canvas({ dropIndex, dragKind, layoutEnabled }) {
         className="mx-auto overflow-hidden rounded-lg bg-white ring-1 ring-slate-200 transition-[max-width] duration-300"
         style={{ maxWidth: DEVICE_WIDTH[device] }}
       >
+        {viewLocale && (
+          <div className="bg-amber-50 px-3 py-1.5 text-center text-xs text-amber-800">
+            Viewing {localeName(viewLocale)}. Edit its text in the Languages tab; other edits change the default language.
+          </div>
+        )}
         <div
           className="eb-site"
           data-theme={site.theme.darkMode === 'off' ? undefined : themePreview}
           style={{ minHeight: 640 }}
         >
           <ThemeStyle theme={site.theme} />
-          <GlobalBlock id="header" selected={selectedId === 'header'} />
+          <GlobalBlock id="header" viewSite={viewSite} selected={selectedId === 'header'} />
           <SortableContext items={blockIds} strategy={verticalListSortingStrategy}>
             <motion.div
               key={page.id}
@@ -262,6 +276,8 @@ export default function Canvas({ dropIndex, dragKind, layoutEnabled }) {
                   <CanvasBlock
                     key={block.id}
                     block={block}
+                    viewBlock={viewPage.blocks[i] ?? block}
+                    viewSite={viewSite}
                     index={i}
                     total={page.blocks.length}
                     selected={selectedIds.includes(block.id)}
@@ -295,7 +311,7 @@ export default function Canvas({ dropIndex, dragKind, layoutEnabled }) {
             <Plus size={16} className="mr-1.5" />
             {empty ? 'Drag a block here to start building this page' : 'Drop here to add to the end'}
           </div>
-          <GlobalBlock id="footer" selected={selectedId === 'footer'} />
+          <GlobalBlock id="footer" viewSite={viewSite} selected={selectedId === 'footer'} />
         </div>
       </div>
     </main>

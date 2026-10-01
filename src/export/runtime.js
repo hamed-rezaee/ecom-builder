@@ -2,11 +2,17 @@
 (function () {
   'use strict';
 
-  var data = window.__SITE__ || { name: '', currency: '$', products: [] };
+  var data = window.__SITE__ || { name: '', currency: 'USD', products: [] };
   var byId = {};
   data.products.forEach(function (p) {
     byId[p.id] = p;
   });
+
+  var rates = { [data.currency]: 1 };
+  (data.currencies || []).forEach(function (c) {
+    rates[c.code] = c.rate;
+  });
+  var activeCurrency = data.currency;
 
   var KEY = 'eb-cart';
   var cart = load();
@@ -37,8 +43,58 @@
     }
   }
 
+  function t(key, vars) {
+    var text = (data.ui && data.ui[key]) || key;
+    return text.replace(/\{(\w+)\}/g, function (m, k) {
+      return vars && Object.prototype.hasOwnProperty.call(vars, k)
+        ? String(vars[k])
+        : m;
+    });
+  }
+
+  var translate = t;
+
   function money(n) {
-    return data.currency + n.toFixed(2);
+    var amount = n * rates[activeCurrency];
+    try {
+      return new Intl.NumberFormat(data.locale || 'en-US', {
+        style: 'currency',
+        currency: activeCurrency,
+      }).format(amount);
+    } catch {
+      return activeCurrency + ' ' + amount.toFixed(2);
+    }
+  }
+
+  function setCurrency(code, persist) {
+    if (!Object.prototype.hasOwnProperty.call(rates, code)) return;
+    activeCurrency = code;
+    if (persist) {
+      try {
+        window.localStorage.setItem('eb-currency', code);
+      } catch {
+        // storage unavailable (sandboxed preview)
+      }
+    }
+    var prices = document.querySelectorAll('[data-price]');
+    for (var i = 0; i < prices.length; i++)
+      prices[i].textContent = money(
+        Number(prices[i].getAttribute('data-price')),
+      );
+    var pickers = document.querySelectorAll('[data-currency-switcher]');
+    for (var j = 0; j < pickers.length; j++) pickers[j].value = code;
+    if (currentRoute === 'cart') renderCart();
+    if (currentRoute === 'checkout') renderCheckout();
+  }
+
+  function initCurrency() {
+    var saved = null;
+    try {
+      saved = window.localStorage.getItem('eb-currency');
+    } catch {
+      // storage unavailable (sandboxed preview)
+    }
+    if (saved) setCurrency(saved, false);
   }
 
   function el(tag, cls, text) {
@@ -88,7 +144,7 @@
     for (var m = 0; m < marks.length; m++) {
       var line = find(marks[m].getAttribute('data-in-cart'));
       marks[m].hidden = !line;
-      marks[m].textContent = line ? 'In cart: ' + line.qty : '';
+      marks[m].textContent = line ? t('inCart', { count: line.qty }) : '';
     }
     if (currentRoute === 'cart') renderCart();
   }
@@ -141,7 +197,7 @@
   function emptyMessage(text) {
     var box = el('div', 'eb-empty');
     box.appendChild(el('p', null, text));
-    var link = el('a', 'eb-btn', 'Start shopping');
+    var link = el('a', 'eb-btn', t('startShopping'));
     link.setAttribute('href', '#/');
     box.appendChild(link);
     return box;
@@ -152,7 +208,7 @@
     if (!view) return;
     view.textContent = '';
     if (!cart.length) {
-      view.appendChild(emptyMessage('Your cart is empty.'));
+      view.appendChild(emptyMessage(t('cartEmpty')));
       return;
     }
     cart.forEach(function (line) {
@@ -167,11 +223,16 @@
       info.appendChild(el('strong', null, p.name));
       info.appendChild(el('span', 'eb-note', money(p.price)));
       var qty = el('div', 'eb-qty');
-      qty.appendChild(actionButton('dec', p.id, '\u2212', 'Decrease quantity'));
+      qty.appendChild(actionButton('dec', p.id, '\u2212', t('decreaseQty')));
       qty.appendChild(el('span', null, String(line.qty)));
-      qty.appendChild(actionButton('inc', p.id, '+', 'Increase quantity'));
+      qty.appendChild(actionButton('inc', p.id, '+', t('increaseQty')));
       info.appendChild(qty);
-      var remove = actionButton('remove', p.id, 'Remove', 'Remove ' + p.name);
+      var remove = actionButton(
+        'remove',
+        p.id,
+        t('remove'),
+        t('removeItem', { name: p.name }),
+      );
       remove.className = 'eb-link-btn';
       info.appendChild(remove);
       row.appendChild(info);
@@ -181,9 +242,9 @@
     });
     var summary = el('div', 'eb-summary');
     summary.appendChild(
-      el('div', 'eb-total', 'Subtotal: ' + money(subtotal())),
+      el('div', 'eb-total', t('subtotal', { amount: money(subtotal()) })),
     );
-    var checkout = el('a', 'eb-btn', 'Checkout');
+    var checkout = el('a', 'eb-btn', t('checkout'));
     checkout.setAttribute('href', '#/checkout');
     summary.appendChild(checkout);
     view.appendChild(summary);
@@ -214,34 +275,28 @@
     if (!view) return;
     view.textContent = '';
     if (!cart.length) {
-      view.appendChild(emptyMessage('Your cart is empty.'));
+      view.appendChild(emptyMessage(t('cartEmpty')));
       return;
     }
     var layout = el('div', 'eb-checkout');
 
     var form = el('form', 'eb-form');
     form.setAttribute('data-checkout-form', '');
-    form.appendChild(field('Full name', 'name', 'text', 'name'));
-    form.appendChild(field('Email', 'email', 'email', 'email'));
-    form.appendChild(field('Address', 'address', 'text', 'street-address'));
+    form.appendChild(field(t('fullName'), 'name', 'text', 'name'));
+    form.appendChild(field(t('email'), 'email', 'email', 'email'));
+    form.appendChild(field(t('address'), 'address', 'text', 'street-address'));
     var two = el('div', 'eb-form-2');
-    two.appendChild(field('City', 'city', 'text', 'address-level2'));
-    two.appendChild(field('Postal code', 'zip', 'text', 'postal-code'));
+    two.appendChild(field(t('city'), 'city', 'text', 'address-level2'));
+    two.appendChild(field(t('postalCode'), 'zip', 'text', 'postal-code'));
     form.appendChild(two);
-    var submit = el('button', 'eb-btn', 'Place order');
+    var submit = el('button', 'eb-btn', t('placeOrder'));
     submit.type = 'submit';
     form.appendChild(submit);
-    form.appendChild(
-      el(
-        'p',
-        'eb-note',
-        'Demo checkout: no payment is taken and no data is sent anywhere.',
-      ),
-    );
+    form.appendChild(el('p', 'eb-note', t('demoNote')));
     layout.appendChild(form);
 
     var order = el('div', 'eb-order');
-    order.appendChild(el('strong', null, 'Order summary'));
+    order.appendChild(el('strong', null, t('orderSummary')));
     cart.forEach(function (line) {
       var p = byId[line.id];
       var row = el('div', 'eb-order-line');
@@ -250,7 +305,7 @@
       order.appendChild(row);
     });
     var total = el('div', 'eb-order-line eb-order-total');
-    total.appendChild(el('span', null, 'Total'));
+    total.appendChild(el('span', null, t('total')));
     total.appendChild(el('span', null, money(subtotal())));
     order.appendChild(total);
     layout.appendChild(order);
@@ -265,17 +320,9 @@
     var view = document.querySelector('[data-checkout-view]');
     view.textContent = '';
     var box = el('div', 'eb-success');
-    box.appendChild(el('h2', 'eb-heading', 'Thank you, ' + name + '!'));
-    box.appendChild(
-      el(
-        'p',
-        'eb-sub',
-        'Order ' +
-          number +
-          ' was placed. This is a demo store, so nothing was charged.',
-      ),
-    );
-    var back = el('a', 'eb-btn', 'Continue shopping');
+    box.appendChild(el('h2', 'eb-heading', t('thanks', { name: name })));
+    box.appendChild(el('p', 'eb-sub', t('orderPlaced', { number: number })));
+    var back = el('a', 'eb-btn', t('continueShopping'));
     back.setAttribute('href', '#/');
     box.appendChild(back);
     view.appendChild(box);
@@ -357,6 +404,54 @@
     return document.querySelector('.eb-site');
   }
 
+  function countText(node, value) {
+    var parts = value
+      .toFixed(Number(node.getAttribute('data-count-decimals')) || 0)
+      .split('.');
+    if (node.getAttribute('data-count-group'))
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return (
+      (node.getAttribute('data-count-prefix') || '') +
+      parts.join('.') +
+      (node.getAttribute('data-count-suffix') || '')
+    );
+  }
+
+  function runCounter(node) {
+    var to = Number(node.getAttribute('data-count-to'));
+    var ms = Number(node.getAttribute('data-count-duration')) || 1600;
+    var start = null;
+    function frame(now) {
+      if (start === null) start = now;
+      var k = Math.min(1, (now - start) / ms);
+      node.textContent =
+        k >= 1 ? node._final : countText(node, to * (1 - Math.pow(1 - k, 3)));
+      if (k < 1) window.requestAnimationFrame(frame);
+    }
+    window.requestAnimationFrame(frame);
+  }
+
+  // Hidden routes never intersect, so a count starts when its page is first shown.
+  function initCounters() {
+    var nodes = document.querySelectorAll('[data-count-to]');
+    if (!nodes.length || reduced || !('IntersectionObserver' in window)) return;
+    var io = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) return;
+          io.unobserve(entry.target);
+          runCounter(entry.target);
+        });
+      },
+      { threshold: 0.4 },
+    );
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i]._final = nodes[i].textContent;
+      nodes[i].textContent = countText(nodes[i], 0);
+      io.observe(nodes[i]);
+    }
+  }
+
   function initTheme() {
     var root = themeRoot();
     if (!root || data.darkMode !== 'toggle') return;
@@ -423,7 +518,7 @@
       setQty(id, (line ? line.qty : 0) + 1);
       var original = add.getAttribute('data-label') || add.textContent;
       add.setAttribute('data-label', original);
-      add.textContent = 'Added \u2713';
+      add.textContent = translate('added');
       clearTimeout(add._reset);
       add._reset = setTimeout(function () {
         add.textContent = original;
@@ -446,17 +541,11 @@
     if (!(form instanceof HTMLFormElement)) return;
     if (form.hasAttribute('data-newsletter')) {
       e.preventDefault();
-      var thanks = el('p', 'eb-sub', 'Thanks for subscribing!');
+      var thanks = el('p', 'eb-sub', t('subscribed'));
       form.replaceWith(thanks);
     } else if (form.hasAttribute('data-contact')) {
       e.preventDefault();
-      form.replaceWith(
-        el(
-          'p',
-          'eb-sub',
-          'Thanks! Your message was received (demo, nothing was sent).',
-        ),
-      );
+      form.replaceWith(el('p', 'eb-sub', t('messageSent')));
     } else if (form.hasAttribute('data-checkout-form')) {
       e.preventDefault();
       placeOrder(form);
@@ -464,11 +553,24 @@
   });
 
   window.addEventListener('hashchange', route);
+  document.addEventListener('change', function (e) {
+    var t = e.target;
+    if (t instanceof Element && t.matches('[data-currency-switcher]'))
+      setCurrency(t.value, true);
+    else if (t instanceof Element && t.matches('[data-lang-switcher]')) {
+      // The sandboxed preview cannot navigate; it asks the editor to rebuild instead.
+      if (data.inline)
+        window.parent.postMessage({ type: 'eb-lang', code: t.value }, '*');
+      else window.location.href = t.value + window.location.hash;
+    }
+  });
   changed();
   initTheme();
+  initCurrency();
   route();
   initAnimations();
   initScrollEffects();
+  initCounters();
   // Hidden routes have zero size; the wireframe resumes on its own when they show.
   if (window.EBWire) window.EBWire.mountAll();
 })();

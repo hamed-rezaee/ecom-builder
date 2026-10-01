@@ -1,5 +1,6 @@
 import { createBlock } from '../blocks/registry';
 import { DEFAULT_THEME } from '../utils/theme';
+import { DEFAULT_LOCALES } from '../utils/i18n';
 import { uid } from '../utils/helpers';
 
 const product = (id, name, price, description) => ({
@@ -72,10 +73,13 @@ export function createStarterSite() {
       customFonts: [],
     },
     themePresets: [],
+    locales: { ...DEFAULT_LOCALES, enabled: [] },
+    translations: {},
     header: {
       logoText: 'Lumen & Co.',
       announcement: 'Free shipping on orders over $50',
       showCart: true,
+      showLanguage: true,
       sticky: true,
       links: [
         { label: 'Home', href: '#/' },

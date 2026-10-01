@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { LayoutTemplate, Package, Palette, Layers } from 'lucide-react'
+import { Languages, LayoutTemplate, Package, Palette, Layers } from 'lucide-react'
 import { cn } from '../utils/helpers'
 import BlocksPanel from './panels/BlocksPanel'
+import LanguagesPanel from './panels/LanguagesPanel'
 import PagesPanel from './panels/PagesPanel'
 import ProductsPanel from './panels/ProductsPanel'
 import ThemePanel from './panels/ThemePanel'
@@ -12,6 +13,7 @@ const TABS = [
   { id: 'pages', label: 'Pages', icon: Layers, Panel: PagesPanel },
   { id: 'products', label: 'Products', icon: Package, Panel: ProductsPanel },
   { id: 'theme', label: 'Theme', icon: Palette, Panel: ThemePanel },
+  { id: 'languages', label: 'Languages', icon: Languages, Panel: LanguagesPanel },
 ]
 
 export default function LeftSidebar() {
@@ -20,7 +22,7 @@ export default function LeftSidebar() {
 
   return (
     <aside className="flex w-72 shrink-0 flex-col border-r border-slate-200 bg-slate-50">
-      <div role="tablist" className="grid grid-cols-4 border-b border-slate-200 bg-white">
+      <div role="tablist" className="grid grid-cols-5 border-b border-slate-200 bg-white">
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}

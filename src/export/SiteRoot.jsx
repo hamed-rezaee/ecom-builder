@@ -2,6 +2,7 @@ import { registry } from '../blocks/registry'
 import { CartView, CheckoutView, ProductDetail } from '../blocks/commerce'
 import { pageRoute } from '../utils/helpers'
 import { animAttrs } from '../utils/animation'
+import { ui } from '../utils/i18n'
 
 function Route({ route, title, hidden = true, children }) {
   return (
@@ -38,19 +39,19 @@ export default function SiteRoot({ site }) {
             <ProductDetail product={product} site={site} />
           </Route>
         ))}
-        <Route route="cart" title="Cart">
-          <CartView />
+        <Route route="cart" title={ui(site, 'cart')}>
+          <CartView site={site} />
         </Route>
-        <Route route="checkout" title="Checkout">
-          <CheckoutView />
+        <Route route="checkout" title={ui(site, 'checkout')}>
+          <CheckoutView site={site} />
         </Route>
-        <Route route="404" title="Not found">
+        <Route route="404" title={ui(site, 'notFound')}>
           <div className="eb-page">
             <div className="eb-container eb-center">
-              <h1 className="eb-heading">Page not found</h1>
+              <h1 className="eb-heading">{ui(site, 'notFound')}</h1>
               <p className="eb-empty">
                 <a className="eb-btn" href="#/">
-                  Back to home
+                  {ui(site, 'backHome')}
                 </a>
               </p>
             </div>

@@ -1,7 +1,20 @@
 import { Moon, ShoppingBag, Sun } from 'lucide-react'
 import { safeHref } from '../utils/helpers'
+import { localeName, ui } from '../utils/i18n'
 
 export function Header({ props: p, site }) {
+  const enabled = site?.locales?.enabled ?? []
+  // Export builds hrefs to the language folders; the editor and inline preview use bare language codes.
+  const langSwitch =
+    p.showLanguage === false
+      ? null
+      : (site?.langSwitch ??
+        (enabled.length
+          ? {
+              current: site.locale ?? site.locales.default,
+              options: [site.locales.default, ...enabled].map((c) => [c, localeName(c)]),
+            }
+          : null))
   return (
     <>
       {p.announcement && <div className="eb-announce">{p.announcement}</div>}
@@ -27,8 +40,26 @@ export function Header({ props: p, site }) {
                 <Sun className="eb-theme-sun" size={18} aria-hidden="true" />
               </button>
             )}
+            {langSwitch && (
+              <select className="eb-currency" data-lang-switcher aria-label={ui(site, 'language')} defaultValue={langSwitch.current}>
+                {langSwitch.options.map(([href, label]) => (
+                  <option key={href} value={href}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            )}
+            {site?.theme?.currencies?.length > 0 && (
+              <select className="eb-currency" data-currency-switcher aria-label={ui(site, 'currency')} defaultValue={site.theme.currency}>
+                {[site.theme.currency, ...site.theme.currencies.map((c) => c.code)].map((code) => (
+                  <option key={code} value={code}>
+                    {code}
+                  </option>
+                ))}
+              </select>
+            )}
             {p.showCart && (
-              <a className="eb-cart-link" href="#/cart" aria-label="Cart">
+              <a className="eb-cart-link" href="#/cart" aria-label={ui(site, 'cart')}>
                 <ShoppingBag size={20} aria-hidden="true" />
                 <span className="eb-cart-count" data-cart-count>
                   0

@@ -7,6 +7,8 @@ import runtime from './runtime.js?raw'
 import wireJs from './wireEntry.js?iife'
 import SiteRoot from './SiteRoot'
 import { productImage } from '../utils/helpers'
+import { localeDir, localeName, normalizeLocales } from '../utils/i18n'
+import { localizeSite } from '../utils/translate'
 import { normalizeTheme, themeCss, usedGoogleFonts } from '../utils/theme'
 
 const escapeHtml = (s) =>
@@ -17,13 +19,38 @@ const escapeHtml = (s) =>
 
 const fontPath = (f) => `fonts/${f.id}.${f.ext}`
 
-export function buildSite(rawSite, { inline = false } = {}) {
-  const site = { ...rawSite, theme: normalizeTheme(rawSite.theme) }
+// The default language lives at the ZIP root; every other language in its own folder.
+export const localePath = (code, locales) => (code === locales.default ? '' : `${code}/`)
+
+export function buildSite(rawSite, { inline = false, locale } = {}) {
+  const locales = normalizeLocales(rawSite.locales)
+  const lang = locale && (locale === locales.default || locales.enabled.includes(locale)) ? locale : locales.default
+  const base = lang === locales.default ? '' : '../'
+  const source = {
+    ...rawSite,
+    theme: normalizeTheme(rawSite.theme),
+    locales,
+    translations: rawSite.translations ?? {},
+  }
+  const site = { ...localizeSite(source, lang), locale: lang }
+  if (!inline && locales.enabled.length > 0) {
+    site.langSwitch = {
+      current: `${base}${localePath(lang, locales)}` || './',
+      options: [locales.default, ...locales.enabled].map((code) => [
+        `${base}${localePath(code, locales)}` || './',
+        localeName(code),
+      ]),
+    }
+  }
   const { theme } = site
   const body = renderToStaticMarkup(<SiteRoot site={site} />)
   const runtimeData = JSON.stringify({
     name: site.name,
+    locale: lang,
+    inline,
+    ui: site.ui,
     currency: theme.currency,
+    currencies: theme.currencies,
     darkMode: theme.darkMode,
     pageTransition: theme.pageTransition,
     smoothScroll: theme.smoothScroll,
@@ -54,13 +81,13 @@ export function buildSite(rawSite, { inline = false } = {}) {
 `
     : ''
 
-  const head = inline ? `<style>${css}</style>` : '<link rel="stylesheet" href="site.css">'
+  const head = inline ? `<style>${css}</style>` : `<link rel="stylesheet" href="${base}site.css">`
   const script = inline
     ? `<script>${js.replace(/<\/script/gi, '<\\/script')}</script>`
-    : '<script src="site.js"></script>'
+    : `<script src="${base}site.js"></script>`
 
   const html = `<!doctype html>
-<html lang="en">
+<html lang="${lang}" dir="${localeDir(lang)}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

@@ -125,7 +125,7 @@ export default function FieldRenderer({ field, value, onChange }) {
     case 'range':
       return <RangeInput label={label} value={value} onChange={onChange} min={field.min} max={field.max} />
     case 'image':
-      return <ImageInput label={label} value={value} onChange={onChange} />
+      return <ImageInput label={label} value={value} onChange={onChange} maxSize={field.maxSize} />
     case 'link':
       return <LinkField label={label} value={value} onChange={onChange} />
     case 'product':
