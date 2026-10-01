@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { Check, Copy, Home, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useSiteStore } from '../../store/useSiteStore'
 import { cn } from '../../utils/helpers'
+import { SortableItem, SortableList } from '../ui/Sortable'
 
 export default function PagesPanel() {
   const pages = useSiteStore((s) => s.site.pages)
   const currentPageId = useSiteStore((s) => s.currentPageId)
-  const { setCurrentPage, addPage, renamePage, duplicatePage, deletePage } = useSiteStore()
+  const { setCurrentPage, addPage, renamePage, duplicatePage, deletePage, movePage } = useSiteStore()
   const [newName, setNewName] = useState('')
   const [editingId, setEditingId] = useState(null)
 
@@ -22,17 +23,22 @@ export default function PagesPanel() {
 
   return (
     <div className="space-y-4 p-4">
-      <ul className="space-y-1.5">
+      <SortableList ids={pages.map((p) => p.id)} onMove={movePage} className="space-y-1.5">
         {pages.map((page) => {
           const active = page.id === (pages.find((p) => p.id === currentPageId) ?? pages[0]).id
           return (
-            <li
+            <SortableItem
               key={page.id}
+              id={page.id}
+              label={page.name}
               className={cn(
                 'group flex items-center gap-2 rounded-lg border px-3 py-2',
                 active ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200 bg-white hover:border-slate-300',
               )}
             >
+              {(handle) => (
+                <>
+              {handle}
               {page.isHome ? (
                 <Home size={15} className="shrink-0 text-slate-400" />
               ) : (
@@ -88,10 +94,12 @@ export default function PagesPanel() {
                   </button>
                 )}
               </div>
-            </li>
+                </>
+              )}
+            </SortableItem>
           )
         })}
-      </ul>
+      </SortableList>
 
       <form onSubmit={submitNew} className="flex gap-2">
         <input

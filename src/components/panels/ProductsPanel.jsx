@@ -4,6 +4,7 @@ import { useSiteStore } from '../../store/useSiteStore'
 import { toast } from '../../store/toastStore'
 import { formatPrice, productImage } from '../../utils/helpers'
 import { ImageInput, NumberInput, TextArea, TextInput } from '../ui/Field'
+import { SortableItem, SortableList } from '../ui/Sortable'
 
 function ProductRow({ product, open, onToggle }) {
   const currency = useSiteStore((s) => s.site.theme.currency)
@@ -18,12 +19,16 @@ function ProductRow({ product, open, onToggle }) {
   }
 
   return (
-    <li className="rounded-lg border border-slate-200 bg-white">
+    <SortableItem id={product.id} label={product.name} className="rounded-lg border border-slate-200 bg-white">
+      {(handle) => (
+        <>
+      <div className="flex items-center">
+      <span className="pl-1.5">{handle}</span>
       <button
         type="button"
         aria-expanded={open}
         onClick={onToggle}
-        className="flex w-full items-center gap-3 p-2 text-left"
+        className="flex min-w-0 flex-1 items-center gap-3 p-2 text-left"
       >
         <img src={productImage(product)} alt="" className="h-10 w-10 shrink-0 rounded object-cover" />
         <span className="min-w-0 flex-1">
@@ -32,6 +37,7 @@ function ProductRow({ product, open, onToggle }) {
         </span>
         {open ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />}
       </button>
+      </div>
       {open && (
         <div className="space-y-3 border-t border-slate-100 p-3">
           <TextInput label="Name" value={product.name} onChange={(v) => updateProduct(product.id, { name: v })} />
@@ -69,13 +75,16 @@ function ProductRow({ product, open, onToggle }) {
           </button>
         </div>
       )}
-    </li>
+        </>
+      )}
+    </SortableItem>
   )
 }
 
 export default function ProductsPanel() {
   const products = useSiteStore((s) => s.site.products)
   const addProduct = useSiteStore((s) => s.addProduct)
+  const moveProduct = useSiteStore((s) => s.moveProduct)
   const [openId, setOpenId] = useState(null)
 
   return (
@@ -90,7 +99,7 @@ export default function ProductsPanel() {
       {products.length === 0 ? (
         <p className="py-6 text-center text-sm text-slate-500">No products yet.</p>
       ) : (
-        <ul className="space-y-2">
+        <SortableList ids={products.map((p) => p.id)} onMove={moveProduct} className="space-y-2">
           {products.map((p) => (
             <ProductRow
               key={p.id}
@@ -99,7 +108,7 @@ export default function ProductsPanel() {
               onToggle={() => setOpenId(openId === p.id ? null : p.id)}
             />
           ))}
-        </ul>
+        </SortableList>
       )}
     </div>
   )

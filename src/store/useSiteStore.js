@@ -386,6 +386,14 @@ export const useSiteStore = create(
           commit((site) => ({ ...site, pages: [...site.pages, page] }));
           set({ currentPageId: page.id, ...NONE });
         },
+        movePage: (from, to) => {
+          if (from === to || from < 0 || to < 0) return;
+          commit((site) => {
+            const pages = [...site.pages];
+            pages.splice(to, 0, pages.splice(from, 1)[0]);
+            return { ...site, pages };
+          });
+        },
         deletePage: (id) => {
           const { site, currentPageId } = get();
           const page = site.pages.find((p) => p.id === id);
@@ -412,6 +420,14 @@ export const useSiteStore = create(
             ],
           }));
           return id;
+        },
+        moveProduct: (from, to) => {
+          if (from === to || from < 0 || to < 0) return;
+          commit((site) => {
+            const products = [...site.products];
+            products.splice(to, 0, products.splice(from, 1)[0]);
+            return { ...site, products };
+          });
         },
         updateProduct: (id, patch) =>
           commit(
