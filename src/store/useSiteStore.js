@@ -406,6 +406,7 @@ export const useSiteStore = create(
                 name: 'New product',
                 price: 25,
                 description: '',
+                shortDescription: '',
                 image: '',
               },
             ],

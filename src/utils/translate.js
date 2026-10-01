@@ -52,6 +52,8 @@ export function collectStrings(site) {
   add('Products', (push) => {
     for (const p of site.products) {
       if (p.name) push(`product:${p.id}:name`, p.name);
+      if (p.shortDescription)
+        push(`product:${p.id}:shortDescription`, p.shortDescription, true);
       if (p.description)
         push(`product:${p.id}:description`, p.description, true);
     }
@@ -107,7 +109,7 @@ export function localizeSite(site, locale) {
     else if (
       kind === 'product' &&
       products.has(a) &&
-      (b === 'name' || b === 'description')
+      (b === 'name' || b === 'description' || b === 'shortDescription')
     )
       products.get(a)[b] = text;
     else if (kind === 'b' && blocks.has(a) && b)

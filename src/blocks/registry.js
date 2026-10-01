@@ -139,6 +139,12 @@ export const registry = {
       paginationStyle: 'pages',
       showInCart: true,
       buttonText: 'Add to cart',
+      showDescription: true,
+      showPrice: true,
+      showButton: true,
+      cardStyle: 'shadow',
+      imageRatio: 'square',
+      textAlign: 'left',
     },
     fields: [
       text('heading', 'Heading'),
@@ -148,6 +154,27 @@ export const registry = {
         [3, '3'],
         [4, '4'],
       ]),
+      select('cardStyle', 'Card style', [
+        ['shadow', 'Shadow'],
+        ['outline', 'Outline'],
+        ['flat', 'Flat'],
+      ]),
+      select('imageRatio', 'Image shape', [
+        ['square', 'Square'],
+        ['portrait', 'Portrait'],
+        ['landscape', 'Landscape'],
+      ]),
+      select('textAlign', 'Text alignment', [
+        ['left', 'Left'],
+        ['center', 'Center'],
+      ]),
+      {
+        key: 'showDescription',
+        label: 'Show short description',
+        type: 'toggle',
+      },
+      { key: 'showPrice', label: 'Show price', type: 'toggle' },
+      { key: 'showButton', label: 'Show add to cart button', type: 'toggle' },
       {
         key: 'perPage',
         label: 'Products per page (0 = all)',

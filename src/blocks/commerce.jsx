@@ -6,10 +6,32 @@ function InCartBadge({ id }) {
   return <span className="eb-in-cart" data-in-cart={id} hidden />
 }
 
-export function ProductCard({ product, site, buttonText, showInCart = true, hidden = false }) {
+const pick = (value, allowed, fallback) => (allowed.includes(value) ? value : fallback)
+
+export function ProductCard({
+  product,
+  site,
+  buttonText,
+  showInCart = true,
+  hidden = false,
+  showDescription = true,
+  showPrice = true,
+  showButton = true,
+  cardStyle = 'shadow',
+  imageRatio = 'square',
+  textAlign = 'left',
+}) {
   const href = `#/product/${product.id}`
+  const cls = [
+    'eb-card',
+    `eb-card-${pick(cardStyle, ['shadow', 'outline', 'flat'], 'shadow')}`,
+    `eb-card-${pick(imageRatio, ['square', 'portrait', 'landscape'], 'square')}`,
+    pick(textAlign, ['left', 'center'], 'left') === 'center' && 'eb-card-center',
+  ]
+    .filter(Boolean)
+    .join(' ')
   return (
-    <article className="eb-card" hidden={hidden}>
+    <article className={cls} hidden={hidden}>
       <div className="eb-card-media">
         <a href={href}>
           <img className="eb-card-img" src={productImage(product)} alt={product.name} />
@@ -20,18 +42,25 @@ export function ProductCard({ product, site, buttonText, showInCart = true, hidd
         <a className="eb-card-title" href={href}>
           {product.name}
         </a>
-        <span className="eb-price" data-price={Number(product.price) || 0}>
-          {formatPrice(product.price, site.theme.currency, site.locale)}
-        </span>
-        <div className="eb-card-actions">
-          <button
-            type="button"
-            className="eb-btn eb-btn-sm"
-            data-add-to-cart={product.id}
-          >
-            {buttonText || ui(site, 'addToCart')}
-          </button>
-        </div>
+        {showDescription && product.shortDescription && (
+          <p className="eb-card-desc">{product.shortDescription}</p>
+        )}
+        {showPrice && (
+          <span className="eb-price" data-price={Number(product.price) || 0}>
+            {formatPrice(product.price, site.theme.currency, site.locale)}
+          </span>
+        )}
+        {showButton && (
+          <div className="eb-card-actions">
+            <button
+              type="button"
+              className="eb-btn eb-btn-sm"
+              data-add-to-cart={product.id}
+            >
+              {buttonText || ui(site, 'addToCart')}
+            </button>
+          </div>
+        )}
       </div>
     </article>
   )
@@ -72,6 +101,12 @@ export function ProductGrid({ props: p, site }) {
                   site={site}
                   buttonText={p.buttonText}
                   showInCart={p.showInCart !== false}
+                  showDescription={p.showDescription !== false}
+                  showPrice={p.showPrice !== false}
+                  showButton={p.showButton !== false}
+                  cardStyle={p.cardStyle}
+                  imageRatio={p.imageRatio}
+                  textAlign={p.textAlign}
                   hidden={paged && i >= perPage}
                 />
               ))}

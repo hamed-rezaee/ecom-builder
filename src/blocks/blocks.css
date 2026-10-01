@@ -151,6 +151,13 @@
 .eb-card-img { aspect-ratio: 1; width: 100%; object-fit: cover; background: var(--eb-surface); }
 .eb-card-body { display: flex; flex-direction: column; gap: 4px; flex: 1; padding: 14px 16px 16px; }
 .eb-card-title { font-weight: 600; }
+.eb-card-desc { font-size: 0.9rem; color: var(--eb-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.eb-card-outline { box-shadow: none; }
+.eb-card-flat { box-shadow: none; border-color: transparent; background: transparent; }
+.eb-card-portrait .eb-card-img { aspect-ratio: 3 / 4; }
+.eb-card-landscape .eb-card-img { aspect-ratio: 4 / 3; }
+.eb-card-center .eb-card-body { align-items: center; text-align: center; }
+.eb-card-center .eb-card-actions { width: 100%; }
 .eb-price { font-weight: 700; }
 .eb-card-actions { margin-top: auto; padding-top: 10px; }
 .eb-card-actions .eb-btn { width: 100%; }

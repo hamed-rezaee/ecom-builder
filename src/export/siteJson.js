@@ -97,6 +97,7 @@ export function normalizeSite(input) {
       name: str(p.name, 'Product'),
       price: Number.isFinite(Number(p.price)) ? Number(p.price) : 0,
       description: str(p.description, ''),
+      shortDescription: str(p.shortDescription, ''),
       image: str(p.image, ''),
     }));
 

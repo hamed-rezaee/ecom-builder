@@ -18,7 +18,7 @@ describe('ProductGrid pagination', () => {
     const html = render({ perPage: 2, paginationStyle: 'pages', columns: 3 })
     expect(html).toContain('data-paged')
     expect(html.match(/data-pager-go="\d"/g)).toHaveLength(3)
-    expect(html.match(/<article class="eb-card" hidden/g)).toHaveLength(3)
+    expect(html.match(/<article class="eb-card [^"]*" hidden/g)).toHaveLength(3)
   })
 
   it('renders a load more button', () => {

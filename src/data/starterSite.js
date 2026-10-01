@@ -8,6 +8,7 @@ const product = (id, name, price, description) => ({
   name,
   price,
   description,
+  shortDescription: '',
   image: '',
 });
 

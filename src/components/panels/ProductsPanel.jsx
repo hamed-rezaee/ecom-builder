@@ -43,6 +43,12 @@ function ProductRow({ product, open, onToggle }) {
             step={0.01}
             onChange={(v) => updateProduct(product.id, { price: v })}
           />
+          <TextInput
+            label="Short description (shown on product cards)"
+            value={product.shortDescription ?? ''}
+            maxLength={120}
+            onChange={(v) => updateProduct(product.id, { shortDescription: v })}
+          />
           <TextArea
             label="Description"
             value={product.description}
