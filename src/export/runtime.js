@@ -505,6 +505,19 @@
       return;
     }
 
+    var thumb = t.closest('[data-gallery-thumb]');
+    if (thumb) {
+      var gallery = thumb.closest('[data-gallery]');
+      var main = gallery && gallery.querySelector('[data-gallery-main]');
+      if (main) {
+        main.src = thumb.getAttribute('data-gallery-thumb');
+        gallery.querySelectorAll('[data-gallery-thumb]').forEach(function (b) {
+          b.setAttribute('aria-current', b === thumb ? 'true' : 'false');
+        });
+      }
+      return;
+    }
+
     var pager = t.closest('[data-pager-go]');
     if (pager) {
       goToPage(pager);

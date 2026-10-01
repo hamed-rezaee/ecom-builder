@@ -99,6 +99,9 @@ export function normalizeSite(input) {
       description: str(p.description, ''),
       shortDescription: str(p.shortDescription, ''),
       image: str(p.image, ''),
+      images: (Array.isArray(p.images) ? p.images : [])
+        .filter((x) => typeof x === 'string' && x)
+        .slice(0, 12),
     }));
 
   const theme = normalizeTheme({

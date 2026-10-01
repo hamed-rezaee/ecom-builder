@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react'
 import { useSiteStore } from '../../store/useSiteStore'
 import { toast } from '../../store/toastStore'
 import { formatPrice, productImage } from '../../utils/helpers'
-import { ImageInput, NumberInput, TextArea, TextInput } from '../ui/Field'
+import { ImageInput, ImageListInput, NumberInput, TextArea, TextInput } from '../ui/Field'
 import { SortableItem, SortableList } from '../ui/Sortable'
 
 function ProductRow({ product, open, onToggle }) {
@@ -65,6 +65,11 @@ function ProductRow({ product, open, onToggle }) {
             value={product.image}
             maxSize={900}
             onChange={(v) => updateProduct(product.id, { image: v })}
+          />
+          <ImageListInput
+            label="More images (gallery)"
+            value={product.images}
+            onChange={(v) => updateProduct(product.id, { images: v })}
           />
           <button
             type="button"

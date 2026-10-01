@@ -1,4 +1,4 @@
-import { formatPrice, productImage } from '../utils/helpers'
+import { formatPrice, productImage, productImages } from '../utils/helpers'
 import { ui } from '../utils/i18n'
 
 // Hidden until the runtime finds this product in the cart.
@@ -30,11 +30,13 @@ export function ProductCard({
   ]
     .filter(Boolean)
     .join(' ')
+  const images = productImages(product)
   return (
     <article className={cls} hidden={hidden}>
       <div className="eb-card-media">
         <a href={href}>
           <img className="eb-card-img" src={productImage(product)} alt={product.name} />
+          {images.length > 1 && <img className="eb-card-img eb-card-img-alt" src={images[1]} alt="" />}
         </a>
         {showInCart && <InCartBadge id={product.id} />}
       </div>
@@ -191,6 +193,7 @@ export function FeaturedProduct({ props: p, site }) {
 }
 
 export function ProductDetail({ product, site }) {
+  const images = productImages(product)
   return (
     <div className="eb-page">
       <div className="eb-container">
@@ -198,7 +201,25 @@ export function ProductDetail({ product, site }) {
           &larr; {ui(site, 'continueShopping')}
         </a>
         <div className="eb-detail">
-          <img src={productImage(product)} alt={product.name} />
+          <div className="eb-gallery" data-gallery>
+            <img className="eb-gallery-main" data-gallery-main src={images[0]} alt={product.name} />
+            {images.length > 1 && (
+              <div className="eb-gallery-thumbs">
+                {images.map((src, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className="eb-gallery-thumb"
+                    data-gallery-thumb={src}
+                    aria-label={`${product.name} ${i + 1}`}
+                    aria-current={i === 0 ? 'true' : undefined}
+                  >
+                    <img src={src} alt="" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div>
             <h1>{product.name}</h1>
             <span className="eb-price" data-price={Number(product.price) || 0}>

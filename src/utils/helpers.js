@@ -87,6 +87,17 @@ export function placeholderImage(seed = '') {
 export const productImage = (product) =>
   safeSrc(product.image) || placeholderImage(product.name);
 
+// Main image first, then extras; never empty.
+export const productImages = (product) => {
+  const list = [
+    product.image,
+    ...(Array.isArray(product.images) ? product.images : []),
+  ]
+    .map(safeSrc)
+    .filter(Boolean);
+  return list.length ? list : [placeholderImage(product.name)];
+};
+
 export const formatPrice = formatMoney;
 
 export const pageHref = (page) => (page.isHome ? '#/' : `#/p/${page.slug}`);

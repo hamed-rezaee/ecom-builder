@@ -211,6 +211,92 @@ export function Toggle({ label, value, onChange }) {
   )
 }
 
+export function ImageListInput({ label, value, onChange, maxSize = 900, max = 12 }) {
+  const fileRef = useRef(null)
+  const [busy, setBusy] = useState(false)
+  const [url, setUrl] = useState('')
+  const id = useId()
+  const list = Array.isArray(value) ? value : []
+
+  async function handleFiles(e) {
+    const files = Array.from(e.target.files ?? []).slice(0, Math.max(0, max - list.length))
+    e.target.value = ''
+    if (!files.length) return
+    setBusy(true)
+    const added = []
+    for (const file of files) {
+      try {
+        added.push(await readImageFile(file, maxSize))
+      } catch (err) {
+        toast(err.message, { type: 'error' })
+      }
+    }
+    setBusy(false)
+    if (added.length) onChange([...list, ...added])
+  }
+
+  function addUrl(e) {
+    e.preventDefault()
+    const next = url.trim()
+    if (!next || !safeSrc(next) || list.length >= max) return
+    onChange([...list, next])
+    setUrl('')
+  }
+
+  return (
+    <Field label={label} htmlFor={id}>
+      <div className="space-y-2">
+        {list.length > 0 && (
+          <ul className="grid grid-cols-4 gap-2">
+            {list.map((src, i) => (
+              <li key={i} className="group relative">
+                <img
+                  src={safeSrc(src)}
+                  alt=""
+                  className="h-16 w-full rounded-md border border-slate-200 object-cover"
+                />
+                <button
+                  type="button"
+                  aria-label={`Remove image ${i + 1}`}
+                  onClick={() => onChange(list.filter((_, j) => j !== i))}
+                  className="absolute right-0.5 top-0.5 rounded bg-white/90 p-0.5 text-slate-600 shadow hover:text-red-600"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form onSubmit={addUrl} className="flex gap-2">
+          <input
+            id={id}
+            type="text"
+            className={inputCls}
+            value={url}
+            placeholder="Paste image URL"
+            onChange={(e) => setUrl(e.target.value)}
+          />
+          <button
+            type="submit"
+            className="shrink-0 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Add
+          </button>
+        </form>
+        <button
+          type="button"
+          disabled={busy || list.length >= max}
+          onClick={() => fileRef.current?.click()}
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        >
+          <ImagePlus size={14} /> {busy ? 'Processing…' : 'Upload images'}
+        </button>
+        <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={handleFiles} />
+      </div>
+    </Field>
+  )
+}
+
 export function ImageInput({ label, value, onChange, maxSize = 1400 }) {
   const fileRef = useRef(null)
   const [busy, setBusy] = useState(false)
