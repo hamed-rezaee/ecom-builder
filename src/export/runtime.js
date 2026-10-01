@@ -84,7 +84,58 @@
     var badges = document.querySelectorAll('[data-cart-count]');
     for (var i = 0; i < badges.length; i++)
       badges[i].textContent = String(count());
+    var marks = document.querySelectorAll('[data-in-cart]');
+    for (var m = 0; m < marks.length; m++) {
+      var line = find(marks[m].getAttribute('data-in-cart'));
+      marks[m].hidden = !line;
+      marks[m].textContent = line ? 'In cart: ' + line.qty : '';
+    }
     if (currentRoute === 'cart') renderCart();
+  }
+
+  function renderPager(root) {
+    var cards = root.querySelector('.eb-grid').children;
+    var per = Number(root.getAttribute('data-per'));
+    var page = Number(root.getAttribute('data-page'));
+    var pages = Math.ceil(cards.length / per);
+    var more = root.getAttribute('data-style') === 'loadmore';
+    for (var i = 0; i < cards.length; i++)
+      cards[i].hidden = more
+        ? i >= page * per
+        : Math.floor(i / per) + 1 !== page;
+    var buttons = root.querySelectorAll('[data-pager-go]');
+    for (var b = 0; b < buttons.length; b++) {
+      var go = buttons[b].getAttribute('data-pager-go');
+      if (go === 'more') buttons[b].hidden = page >= pages;
+      else if (go === 'prev') buttons[b].disabled = page <= 1;
+      else if (go === 'next') buttons[b].disabled = page >= pages;
+      else if (Number(go) === page)
+        buttons[b].setAttribute('aria-current', 'page');
+      else buttons[b].removeAttribute('aria-current');
+    }
+  }
+
+  function goToPage(btn) {
+    var root = btn.closest('[data-paged]');
+    if (!root) return;
+    var go = btn.getAttribute('data-pager-go');
+    var page = Number(root.getAttribute('data-page'));
+    var next =
+      go === 'more' || go === 'next'
+        ? page + 1
+        : go === 'prev'
+          ? page - 1
+          : Number(go);
+    root.setAttribute('data-page', String(Math.max(1, next)));
+    renderPager(root);
+    if (go !== 'more') {
+      var grid = root.querySelector('.eb-grid');
+      if (grid)
+        grid.scrollIntoView({
+          block: 'start',
+          behavior: reduced ? 'auto' : 'smooth',
+        });
+    }
   }
 
   function emptyMessage(text) {
@@ -359,6 +410,12 @@
       return;
     }
 
+    var pager = t.closest('[data-pager-go]');
+    if (pager) {
+      goToPage(pager);
+      return;
+    }
+
     var add = t.closest('[data-add-to-cart]');
     if (add) {
       var id = add.getAttribute('data-add-to-cart');
@@ -391,6 +448,15 @@
       e.preventDefault();
       var thanks = el('p', 'eb-sub', 'Thanks for subscribing!');
       form.replaceWith(thanks);
+    } else if (form.hasAttribute('data-contact')) {
+      e.preventDefault();
+      form.replaceWith(
+        el(
+          'p',
+          'eb-sub',
+          'Thanks! Your message was received (demo, nothing was sent).',
+        ),
+      );
     } else if (form.hasAttribute('data-checkout-form')) {
       e.preventDefault();
       placeOrder(form);

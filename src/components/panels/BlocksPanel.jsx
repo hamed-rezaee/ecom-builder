@@ -39,7 +39,7 @@ function PaletteItem({ type }) {
 
 export default function BlocksPanel() {
   const [query, setQuery] = useState('')
-  const categories = ['Store', 'Content']
+  const categories = ['Store', 'Content', 'Media']
   const q = query.trim().toLowerCase()
   const matches = (t) =>
     !q || registry[t].label.toLowerCase().includes(q) || registry[t].category.toLowerCase().includes(q)

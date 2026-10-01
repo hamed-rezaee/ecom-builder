@@ -116,7 +116,8 @@ export function createStarterSite() {
             heading: 'Best sellers',
             subheading: 'Our most loved pieces.',
             columns: 4,
-            limit: 4,
+            perPage: 4,
+            paginationStyle: 'none',
           }),
           createBlock('imageText', {
             heading: 'Designed with care',

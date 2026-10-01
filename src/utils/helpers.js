@@ -32,6 +32,43 @@ export function safeSrc(src) {
     : '';
 }
 
+// Returns an embed URL only for YouTube or Vimeo; anything else yields '' so no arbitrary iframe src is rendered.
+export function videoEmbedUrl(url) {
+  let u;
+  try {
+    u = new URL(String(url ?? '').trim());
+  } catch {
+    return '';
+  }
+  if (u.protocol !== 'https:' && u.protocol !== 'http:') return '';
+  const host = u.hostname.replace(/^www\./, '');
+  const youtube = ['youtube.com', 'm.youtube.com', 'youtube-nocookie.com'];
+  if (host === 'youtu.be' || youtube.includes(host)) {
+    const id =
+      host === 'youtu.be'
+        ? u.pathname.split('/')[1]
+        : (u.searchParams.get('v') ??
+          /^\/(?:embed|shorts|live)\/([^/]+)/.exec(u.pathname)?.[1]);
+    return /^[\w-]{11}$/.test(id ?? '')
+      ? `https://www.youtube-nocookie.com/embed/${id}`
+      : '';
+  }
+  if (host === 'vimeo.com' || host === 'player.vimeo.com') {
+    const m = /^\/(?:video\/)?(\d+)/.exec(u.pathname);
+    return m ? `https://player.vimeo.com/video/${m[1]}` : '';
+  }
+  return '';
+}
+
+export function mapEmbedUrl(query) {
+  const q = String(query ?? '')
+    .trim()
+    .slice(0, 200);
+  return q
+    ? `https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed`
+    : '';
+}
+
 export function placeholderImage(seed = '') {
   let hue = 0;
   for (const ch of String(seed)) hue = (hue * 31 + ch.charCodeAt(0)) % 360;

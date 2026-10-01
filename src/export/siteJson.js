@@ -16,10 +16,24 @@ function normalizeBlock(raw) {
   if (!isObject(raw) || !registry[raw.type] || registry[raw.type].global)
     return null;
   const defaults = structuredClone(registry[raw.type].defaults);
+  const props = { ...defaults, ...(isObject(raw.props) ? raw.props : {}) };
+  // Legacy productGrid `limit` (max products) became `perPage` with no pagination.
+  if (
+    raw.type === 'productGrid' &&
+    isObject(raw.props) &&
+    'limit' in raw.props
+  ) {
+    const limit = Math.floor(Number(raw.props.limit)) || 0;
+    if (!('perPage' in raw.props)) {
+      props.perPage = limit;
+      if (limit > 0) props.paginationStyle = 'none';
+    }
+    delete props.limit;
+  }
   const block = {
     id: str(raw.id, '') || uid('b'),
     type: raw.type,
-    props: { ...defaults, ...(isObject(raw.props) ? raw.props : {}) },
+    props,
   };
   if (isObject(raw.anim)) block.anim = normalizeAnim(raw.anim);
   return block;

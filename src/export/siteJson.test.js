@@ -62,6 +62,26 @@ describe('siteJson', () => {
     expect(site.pages[0].isHome).toBe(true);
   });
 
+  it('migrates a legacy productGrid limit to perPage without pagination', () => {
+    const grid = (props) =>
+      normalizeSite({
+        pages: [
+          {
+            id: 'p',
+            name: 'A',
+            slug: 'a',
+            blocks: [{ id: 'g', type: 'productGrid', props }],
+          },
+        ],
+      }).pages[0].blocks[0].props;
+    const limited = grid({ limit: 4 });
+    expect(limited.perPage).toBe(4);
+    expect(limited.paginationStyle).toBe('none');
+    expect(limited).not.toHaveProperty('limit');
+    expect(grid({ limit: 0 }).perPage).toBe(0);
+    expect(grid({}).perPage).toBe(8);
+  });
+
   it('makes duplicate ids and slugs unique', () => {
     const block = { id: 'same', type: 'hero', props: {} };
     const site = normalizeSite({

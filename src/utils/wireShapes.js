@@ -28,6 +28,24 @@ export const IMAGE_SIZES = [
   ['lg', 'Large'],
 ];
 
+export const CTA_TONES = [
+  ['primary', 'Brand color'],
+  ['dark', 'Dark'],
+  ['light', 'Light'],
+];
+
+export const DIVIDER_STYLES = [
+  ['line', 'Line'],
+  ['dots', 'Dots'],
+  ['space', 'Space only'],
+];
+
+export const MAP_HEIGHTS = [
+  ['sm', 'Small'],
+  ['md', 'Medium'],
+  ['lg', 'Large'],
+];
+
 export const GRID_STYLES = [
   ['none', 'None'],
   ['scroll', 'Scrolling grid'],
