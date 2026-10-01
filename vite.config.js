@@ -30,6 +30,7 @@ function iifeRaw() {
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/ecom-builder/',
   plugins: [iifeRaw(), react(), tailwindcss()],
   test: {
     environment: 'jsdom',
